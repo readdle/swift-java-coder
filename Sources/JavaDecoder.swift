@@ -16,9 +16,16 @@ public class JavaDecoder: Decoder {
     
     fileprivate var storage = [JNIStorageObject]()
     fileprivate let package: String
+    fileprivate let missingFieldsStrategy: MissingFieldsStrategy
     
     public init(forPackage package: String) {
         self.package = package
+        self.missingFieldsStrategy = .throw
+    }
+    
+    public init(forPackage package: String, missingFieldsStrategy: MissingFieldsStrategy) {
+        self.package = package
+        self.missingFieldsStrategy = missingFieldsStrategy
     }
     
     public func decode<T : Decodable>(_ type: T.Type, from javaObject: jobject) throws -> T {
@@ -64,7 +71,13 @@ public class JavaDecoder: Decoder {
     }
     
     public func singleValueContainer() throws -> SingleValueDecodingContainer {
-        return JavaSingleValueDecodingContainer()
+        let storageObject = self.popInstance()
+        switch storageObject.type {
+        case .object:
+            return JavaEnumDecodingContainer(decoder: self, jniStorage: storageObject)
+        default:
+            fatalError("Only object supported here")
+        }
     }
     
 }
@@ -102,34 +115,60 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedDecodingContainerPro
         throw JavaCodingError.notSupported
     }
     
+    private func decodeWithMissingStrategy<T>(defaultValue: T, block: () throws -> T) throws -> T {
+        do {
+            return try block()
+        }
+        catch {
+            if self.decoder.missingFieldsStrategy == .ignore {
+                return defaultValue
+            }
+            else {
+                throw error
+            }
+        }
+    }
+    
     func decode(_ type: Bool.Type, forKey key: K) throws -> Bool {
-        let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "Z")
-        return JNI.api.GetBooleanField(JNI.env, javaObject, fieldID) == JNI_TRUE
+        return try decodeWithMissingStrategy(defaultValue: false) {
+            let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "Z")
+            return JNI.api.GetBooleanField(JNI.env, javaObject, fieldID) == JNI_TRUE
+        }
     }
     
     func decode(_ type: Int.Type, forKey key: K) throws -> Int {
-        let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "J")
-        return Int(JNI.api.GetLongField(JNI.env, javaObject, fieldID))
+        return try decodeWithMissingStrategy(defaultValue: 0) {
+            let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "J")
+            return Int(JNI.api.GetLongField(JNI.env, javaObject, fieldID))
+        }
     }
     
     func decode(_ type: Int8.Type, forKey key: K) throws -> Int8 {
-        let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "B")
-        return JNI.api.GetByteField(JNI.env, javaObject, fieldID)
+        return try decodeWithMissingStrategy(defaultValue: 0) {
+            let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "B")
+            return JNI.api.GetByteField(JNI.env, javaObject, fieldID)
+        }
     }
     
     func decode(_ type: Int16.Type, forKey key: K) throws -> Int16 {
-        let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "S")
-        return JNI.api.GetShortField(JNI.env, javaObject, fieldID)
+        return try decodeWithMissingStrategy(defaultValue: 0) {
+            let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "S")
+            return JNI.api.GetShortField(JNI.env, javaObject, fieldID)
+        }
     }
     
     func decode(_ type: Int32.Type, forKey key: K) throws -> Int32 {
-        let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "I")
-        return Int32(JNI.api.GetIntField(JNI.env, javaObject, fieldID))
+        return try decodeWithMissingStrategy(defaultValue: 0) {
+            let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "I")
+            return Int32(JNI.api.GetIntField(JNI.env, javaObject, fieldID))
+        }
     }
     
     func decode(_ type: Int64.Type, forKey key: K) throws -> Int64 {
-        let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "J")
-        return JNI.api.GetLongField(JNI.env, javaObject, fieldID)
+        return try decodeWithMissingStrategy(defaultValue: 0) {
+            let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "J")
+            return JNI.api.GetLongField(JNI.env, javaObject, fieldID)
+        }
     }
     
     func decode(_ type: String.Type, forKey key: K) throws -> String {
@@ -147,21 +186,25 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedDecodingContainerPro
     }
     
     public func decodeIfPresent(_ type: String.Type, forKey key: K) throws -> String? {
-        let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "L\(JavaStringClassname);")
-        let object = JNI.api.GetObjectField(JNI.env, javaObject, fieldID)
-        let str = String(javaObject: object)
-        JNI.api.DeleteLocalRef(JNI.env, object)
-        return str
+        return try decodeWithMissingStrategy(defaultValue: nil) {
+            let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "L\(JavaStringClassname);")
+            let object = JNI.api.GetObjectField(JNI.env, javaObject, fieldID)
+            let str = String(javaObject: object)
+            JNI.api.DeleteLocalRef(JNI.env, object)
+            return str
+        }
     }
     
     public func decodeIfPresent<T>(_ type: T.Type, forKey key: K) throws -> T? where T : Decodable {
-        let sig = self.decoder.getSig(forType: type)
-        let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: sig)
-        guard let object = JNI.api.GetObjectField(JNI.env, javaObject, fieldID) else {
-            throw JavaCodingError.cantFindObject("\(javaClass).\(key.stringValue)")
+        return try decodeWithMissingStrategy(defaultValue: nil) {
+            let sig = self.decoder.getSig(forType: type)
+            let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: sig)
+            guard let object = JNI.api.GetObjectField(JNI.env, javaObject, fieldID) else {
+                throw JavaCodingError.cantFindObject("\(javaClass).\(key.stringValue)")
+            }
+            self.decoder.pushObject(object, forType: type)
+            return try T(from: self.decoder)
         }
-        self.decoder.pushObject(object, forType: type)
-        return try T(from: self.decoder)
     }
     
     func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type, forKey key: K) throws -> KeyedDecodingContainer<NestedKey> where NestedKey : CodingKey {
@@ -363,14 +406,33 @@ fileprivate class JavaUnkeyedDecodingContainer: UnkeyedDecodingContainer {
     }
 }
 
-fileprivate class JavaSingleValueDecodingContainer: SingleValueDecodingContainer {
+fileprivate class JavaEnumDecodingContainer: SingleValueDecodingContainer {
     var codingPath: [CodingKey] = []
+    
+    let decoder: JavaDecoder
+    let javaObject: jobject
+    let javaClass: String
+    
+    fileprivate init(decoder: JavaDecoder, jniStorage: JNIStorageObject) {
+        self.decoder = decoder
+        self.javaObject = jniStorage.javaObject
+        switch jniStorage.type {
+        case let .object(className):
+            self.javaClass = className
+        default:
+            fatalError("Wrong container type")
+        }
+    }
     
     func decodeNil() -> Bool {
         fatalError("Unsupported")
     }
     
     func decode<T>(_ type: T.Type) throws -> T where T : Decodable {
+        if type == Int.self {
+            let fieldID = try getJavaField(forClass: javaClass, field: "rawValue", sig: "J")
+            return Int(JNI.api.GetLongField(JNI.env, javaObject, fieldID)) as! T
+        }
         throw JavaCodingError.notSupported
     }
 }

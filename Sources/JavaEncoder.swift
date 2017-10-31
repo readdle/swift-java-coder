@@ -9,6 +9,11 @@ import Foundation
 import CoreFoundation
 import java_swift
 
+public enum MissingFieldsStrategy: Error {
+    case `throw`
+    case ignore
+}
+
 public enum JavaCodingError: Error {
     case notSupported
     case cantCreateObject(String)
