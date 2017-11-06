@@ -112,7 +112,7 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedDecodingContainerPro
     }
     
     func decodeNil(forKey key: K) throws -> Bool {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaObjectContainer.decodeNil(forKey: \(key)")
     }
     
     private func decodeWithMissingStrategy<T>(defaultValue: T, block: () throws -> T) throws -> T {
@@ -208,19 +208,19 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedDecodingContainerPro
     }
     
     func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type, forKey key: K) throws -> KeyedDecodingContainer<NestedKey> where NestedKey : CodingKey {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaObjectContainer.nestedContainer(keyedBy: \(type), forKey: \(key))")
     }
     
     func nestedUnkeyedContainer(forKey key: K) throws -> UnkeyedDecodingContainer {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaObjectContainer.nestedUnkeyedContainer(forKey: \(key))")
     }
     
     func superDecoder() throws -> Decoder {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaObjectContainer.superDecoder")
     }
     
     func superDecoder(forKey key: K) throws -> Decoder {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaObjectContainer.superDecoder(forKey: \(key)")
     }
 }
 
@@ -277,7 +277,7 @@ fileprivate class JavaHashMapContainer<K : CodingKey>: KeyedDecodingContainerPro
     }
     
     func decodeNil(forKey key: K) throws -> Bool {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaHashMapContainer.decodeNil(forKey: \(key))")
     }
     
     func decode(_ type: String.Type, forKey key: K) throws -> String {
@@ -305,19 +305,19 @@ fileprivate class JavaHashMapContainer<K : CodingKey>: KeyedDecodingContainerPro
     }
     
     func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type, forKey key: K) throws -> KeyedDecodingContainer<NestedKey> where NestedKey : CodingKey {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaHashMapContainer.nestedContainer(keyedBy: \(type), forKey: \(key))")
     }
     
     func nestedUnkeyedContainer(forKey key: K) throws -> UnkeyedDecodingContainer {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaHashMapContainer.nestedUnkeyedContainer(forKey: \(key))")
     }
     
     func superDecoder() throws -> Decoder {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaHashMapContainer.superDecoder")
     }
     
     func superDecoder(forKey key: K) throws -> Decoder {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaHashMapContainer.superDecoder(forKey: \(key))")
     }
 }
 
@@ -348,7 +348,7 @@ fileprivate class JavaUnkeyedDecodingContainer: UnkeyedDecodingContainer {
     }
     
     func decodeNil() throws -> Bool {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaUnkeyedDecodingContainer.decodeNil")
     }
     
     func decode(_ type: Int.Type) throws -> Int {
@@ -385,15 +385,15 @@ fileprivate class JavaUnkeyedDecodingContainer: UnkeyedDecodingContainer {
     }
     
     func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type) throws -> KeyedDecodingContainer<NestedKey> where NestedKey : CodingKey {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaUnkeyedDecodingContainer.nestedContainer(keyedBy: \(type))")
     }
     
     func nestedUnkeyedContainer() throws -> UnkeyedDecodingContainer {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaUnkeyedDecodingContainer.nestedUnkeyedContainer")
     }
     
     func superDecoder() throws -> Decoder {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaUnkeyedDecodingContainer.superDecoder")
     }
     
     fileprivate func arrayElements<T>(_ getArrayElementsBlock: (UnsafeMutablePointer<JNIEnv?>?, jobject?, UnsafeMutablePointer<jboolean>?) -> UnsafeMutablePointer<T>?) -> UnsafeMutablePointer<T>? {
@@ -425,7 +425,7 @@ fileprivate class JavaEnumDecodingContainer: SingleValueDecodingContainer {
     }
     
     func decodeNil() -> Bool {
-        fatalError("Unsupported")
+        fatalError("Unsupported: JavaEnumDecodingContainer.decodeNil")
     }
     
     func decode<T>(_ type: T.Type) throws -> T where T : Decodable {
@@ -433,7 +433,7 @@ fileprivate class JavaEnumDecodingContainer: SingleValueDecodingContainer {
             let fieldID = try getJavaField(forClass: javaClass, field: "rawValue", sig: "J")
             return Int(JNI.api.GetLongField(JNI.env, javaObject, fieldID)) as! T
         }
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaEnumDecodingContainer.decode(type: \(type)")
     }
 }
 

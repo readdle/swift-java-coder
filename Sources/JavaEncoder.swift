@@ -15,7 +15,7 @@ public enum MissingFieldsStrategy: Error {
 }
 
 public enum JavaCodingError: Error {
-    case notSupported
+    case notSupported(String)
     case cantCreateObject(String)
     case cantFindObject(String)
     case nilNotSupported(String)
@@ -152,7 +152,7 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedEncodingContainerPro
     
     // MARK: - KeyedEncodingContainerProtocol Methods
     public func encodeNil(forKey key: Key) throws {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaObjectContainer.encodeNil(forKey: \(key)")
     }
     
     public func encode(_ value: Bool, forKey key: Key) throws {
@@ -240,7 +240,7 @@ fileprivate class JavaHashMapContainer<K : CodingKey> : KeyedEncodingContainerPr
     
     // MARK: - KeyedEncodingContainerProtocol Methods
     public func encodeNil(forKey key: Key) throws {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaHashMapContainer.encodeNil(forKey: \(key))")
     }
     
     public func encode(_ value: String, forKey key: Key) throws {
@@ -318,7 +318,7 @@ fileprivate class JavaArrayContainer : UnkeyedEncodingContainer {
     
     // MARK: - UnkeyedEncodingContainer Methods
     public func encodeNil() throws {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaArrayContainer.encodeNil")
     }
     
     public func encode(_ value: Int) throws {
@@ -381,11 +381,11 @@ class JavaSingleValueEncodingContainer: SingleValueEncodingContainer {
     }
     
     public func encodeNil() throws {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaSingleValueEncodingContainer.encodeNil")
     }
     
     public func encode<T : Encodable>(_ value: T) throws {
-        throw JavaCodingError.notSupported
+        throw JavaCodingError.notSupported("JavaSingleValueEncodingContainer.encode(value: \(value)")
     }
 }
 
