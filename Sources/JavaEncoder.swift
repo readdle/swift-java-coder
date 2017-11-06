@@ -118,7 +118,14 @@ open class JavaEncoder: Encoder {
     }
     
     public func singleValueContainer() -> SingleValueEncodingContainer {
-        return JavaSingleValueEncodingContainer(encoder: self)
+        let storage = self.popInstance()
+        switch storage.type {
+        case let .object(className):
+            return JavaEnumValueEncodingContainer(encoder: self, javaClass: className, javaObject: storage.javaObject)
+        default:
+            fatalError("Only object type supported here")
+        }
+        
     }
 }
 
@@ -370,14 +377,20 @@ fileprivate class JavaArrayContainer : UnkeyedEncodingContainer {
     }
 }
 
-class JavaSingleValueEncodingContainer: SingleValueEncodingContainer {
+class JavaEnumValueEncodingContainer: SingleValueEncodingContainer {
     
     var codingPath: [CodingKey]
     let encoder: JavaEncoder
     
-    init(encoder: JavaEncoder) {
+    private var javaClass: String
+    private var javaObject: jobject
+    
+    init(encoder: JavaEncoder, javaClass: String, javaObject: jobject) {
         self.codingPath = [CodingKey]()
         self.encoder = encoder
+        self.javaClass = javaClass
+        self.javaObject = javaObject
+        NSLog("Created \(javaClass) enum value encoding container")
     }
     
     public func encodeNil() throws {
@@ -385,6 +398,11 @@ class JavaSingleValueEncodingContainer: SingleValueEncodingContainer {
     }
     
     public func encode<T : Encodable>(_ value: T) throws {
+        if value is Int {
+            let fieldID = try getJavaField(forClass: javaClass, field: "rawValue", sig: "J")
+            JNI.api.SetLongField(JNI.env, javaObject, fieldID, jlong(value as! Int))
+            return
+        }
         throw JavaCodingError.notSupported("JavaSingleValueEncodingContainer.encode(value: \(value)")
     }
 }
