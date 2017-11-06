@@ -197,10 +197,28 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedDecodingContainerPro
     
     public func decodeIfPresent<T>(_ type: T.Type, forKey key: K) throws -> T? where T : Decodable {
         return try decodeWithMissingStrategy(defaultValue: nil) {
+            if type == Date.self {
+                // Java save TimeInterval in long (milliseconds)
+                let sig = "J"
+                let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: sig)
+                let timeInterval = JNI.api.GetLongField(JNI.env, javaObject, fieldID)
+                return Date(timeIntervalSince1970: TimeInterval(timeInterval) / 1000) as? T
+            }
+            if type == URL.self {
+                let sig = "Landroid/net/Uri;"
+                let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: sig)
+                guard let object = JNI.api.GetObjectField(JNI.env, javaObject, fieldID) else {
+                    return nil
+                }
+                let methodID = try getJavaMethod(forClass: javaClass, method: "toString", sig: "()Ljava/lang/String;")
+                let pathString = JNI.api.CallObjectMethodA(JNI.env, object, methodID, nil)
+                return URL(string: String(javaObject: pathString)) as? T
+            }
+            
             let sig = self.decoder.getSig(forType: type)
             let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: sig)
             guard let object = JNI.api.GetObjectField(JNI.env, javaObject, fieldID) else {
-                throw JavaCodingError.cantFindObject("\(javaClass).\(key.stringValue)")
+                return nil
             }
             self.decoder.pushObject(object, forType: type)
             return try T(from: self.decoder)
