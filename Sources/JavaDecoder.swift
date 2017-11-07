@@ -171,6 +171,13 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedDecodingContainerPro
         }
     }
     
+    public func decode(_ type: UInt.Type, forKey key: K) throws -> UInt {
+        return try decodeWithMissingStrategy(defaultValue: 0) {
+            let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "J")
+            return UInt(bitPattern: Int(JNI.api.GetLongField(JNI.env, javaObject, fieldID)))
+        }
+    }
+    
     func decode(_ type: String.Type, forKey key: K) throws -> String {
         guard let result = try decodeIfPresent(type, forKey: key) else {
             throw JavaCodingError.nilNotSupported("\(javaClass).\(key.stringValue)")
@@ -450,6 +457,18 @@ fileprivate class JavaEnumDecodingContainer: SingleValueDecodingContainer {
         if type == Int.self {
             let fieldID = try getJavaField(forClass: javaClass, field: "rawValue", sig: "J")
             return Int(JNI.api.GetLongField(JNI.env, javaObject, fieldID)) as! T
+        }
+        if type == Int32.self {
+            let fieldID = try getJavaField(forClass: javaClass, field: "rawValue", sig: "I")
+            return Int32(JNI.api.GetIntField(JNI.env, javaObject, fieldID)) as! T
+        }
+        if type == UInt.self {
+            let fieldID = try getJavaField(forClass: javaClass, field: "rawValue", sig: "J")
+            return UInt(bitPattern: Int(JNI.api.GetLongField(JNI.env, javaObject, fieldID))) as! T
+        }
+        if type == UInt32.self {
+            let fieldID = try getJavaField(forClass: javaClass, field: "rawValue", sig: "J")
+            return UInt32(JNI.api.GetLongField(JNI.env, javaObject, fieldID)) as! T
         }
         throw JavaCodingError.notSupported("JavaEnumDecodingContainer.decode(type: \(type)")
     }
