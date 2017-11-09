@@ -68,6 +68,7 @@ func getJavaClass(_ className: String) throws -> jclass {
         }
         guard let javaClass = JNI.GlobalFindClass(className) else {
             JNI.api.ExceptionClear(JNI.env)
+            JNI.ExceptionReset()
             throw JNIError.classNotFoundException(className)
         }
         javaClasses[className] = javaClass
@@ -91,6 +92,7 @@ func getJavaMethod(forClass className: String, method: String, sig: String) thro
         }
         guard let javaMethodID = JNI.api.GetMethodID(JNI.env, javaClass, method, sig) else {
             JNI.api.ExceptionClear(JNI.env)
+            JNI.ExceptionReset()
             throw JNIError.methodNotFoundException(key)
         }
         javaMethods[key] = javaMethodID
@@ -110,6 +112,7 @@ func getJavaField(forClass className: String, field: String, sig: String) throws
         }
         guard let fieldID = JNI.api.GetFieldID(JNI.env, javaClass, field, sig) else {
             JNI.api.ExceptionClear(JNI.env)
+            JNI.ExceptionReset()
             throw JNIError.fieldNotFoundException(key)
         }
         javaFields[key] = fieldID
@@ -135,6 +138,7 @@ extension JNICore {
         let dump_mid =  JNI.api.GetStaticMethodID(JNI.env, vm_class, "dumpReferenceTables", "()V")
         JNI.api.CallStaticVoidMethodA(JNI.env, vm_class, dump_mid, nil)
         JNI.api.ExceptionClear(JNI.env)
+        JNI.ExceptionReset()
     }
     
 }

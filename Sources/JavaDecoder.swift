@@ -31,16 +31,13 @@ public class JavaDecoder: Decoder {
     public func decode<T : Decodable>(_ type: T.Type, from javaObject: jobject) throws -> T {
         do {
             let rootStorageType = try getJavaClassname(from: javaObject)
-            self.storage.append(JNIStorageObject(type: rootStorageType, javaObject: javaObject))
+            self.storage.append(JNIStorageObject(type: rootStorageType, javaObject: JNI.api.NewLocalRef(JNI.env, javaObject)!))
             let value = try T(from: self)
             assert(self.storage.count == 0, "Missing decoding for \(self.storage.count) objects")
             return value
         }
         catch {
             // clean all reference if failed
-            for storageObject in self.storage {
-                JNI.api.DeleteLocalRef(JNI.env, storageObject.javaObject)
-            }
             self.storage.removeAll()
             throw error
         }
@@ -89,11 +86,13 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedDecodingContainerPro
     var allKeys = [K]()
     
     let decoder: JavaDecoder
+    let jniStorage: JNIStorageObject
     let javaObject: jobject
     let javaClass: String
     
     fileprivate init(decoder: JavaDecoder, jniStorage: JNIStorageObject) {
         self.decoder = decoder
+        self.jniStorage = jniStorage
         self.javaObject = jniStorage.javaObject
         switch jniStorage.type {
         case let .object(className):
@@ -101,10 +100,6 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedDecodingContainerPro
         default:
             fatalError("Wrong container type")
         }
-    }
-    
-    deinit {
-        JNI.api.DeleteLocalRef(JNI.env, self.javaObject)
     }
     
     func contains(_ key: K) -> Bool {
@@ -256,12 +251,14 @@ fileprivate class JavaHashMapContainer<K : CodingKey>: KeyedDecodingContainerPro
     var allKeys = [K]()
     
     private let decoder: JavaDecoder
+    private let jniStorage: JNIStorageObject
     private let javaObject: jobject
     private let javaKeys: [String: jobject]
     private let getMethod: jmethodID
     
     fileprivate init(decoder: JavaDecoder, jniStorage: JNIStorageObject) throws {
         self.decoder = decoder
+        self.jniStorage = jniStorage
         self.javaObject = jniStorage.javaObject
         self.getMethod = try getJavaMethod(forClass: JavaHashMapClassname, method: "get", sig: "(L\(JavaObjectClassname);)L\(JavaObjectClassname);")
         
@@ -294,7 +291,6 @@ fileprivate class JavaHashMapContainer<K : CodingKey>: KeyedDecodingContainerPro
         for (_, value) in self.javaKeys {
            JNI.api.DeleteLocalRef(JNI.env, value)
         }
-        JNI.api.DeleteLocalRef(JNI.env, self.javaObject)
     }
     
     func contains(_ key: K) -> Bool {
@@ -359,17 +355,15 @@ fileprivate class JavaUnkeyedDecodingContainer: UnkeyedDecodingContainer {
     var currentIndex: Int = 0
     
     let decoder: JavaDecoder
+    let jniStorage: JNIStorageObject
     let javaObject: jobject
     var unsafePointer: UnsafeMutableRawPointer? // Copied array of elements (only for primitive types)
     
     fileprivate init(decoder: JavaDecoder, jniStorage: JNIStorageObject) {
         self.decoder = decoder
+        self.jniStorage = jniStorage
         self.javaObject = jniStorage.javaObject
         self.count = Int(JNI.api.GetArrayLength(JNI.env, jniStorage.javaObject))
-    }
-    
-    deinit {
-        JNI.api.DeleteLocalRef(JNI.env, self.javaObject)
     }
     
     func decodeNil() throws -> Bool {
@@ -435,11 +429,13 @@ fileprivate class JavaEnumDecodingContainer: SingleValueDecodingContainer {
     var codingPath: [CodingKey] = []
     
     let decoder: JavaDecoder
+    let jniStorage: JNIStorageObject
     let javaObject: jobject
     let javaClass: String
     
     fileprivate init(decoder: JavaDecoder, jniStorage: JNIStorageObject) {
         self.decoder = decoder
+        self.jniStorage = jniStorage
         self.javaObject = jniStorage.javaObject
         switch jniStorage.type {
         case let .object(className):
