@@ -200,11 +200,13 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedDecodingContainerPro
     public func decodeIfPresent<T>(_ type: T.Type, forKey key: K) throws -> T? where T : Decodable {
         return try decodeWithMissingStrategy(defaultValue: nil) {
             if type == Date.self {
-                // Java save TimeInterval in long (milliseconds)
-                let sig = "J"
+                let sig = "Ljava/util/Date;"
                 let fieldID = try getJavaField(forClass: javaClass, field: key.stringValue, sig: sig)
-                let timeInterval = JNI.api.GetLongField(JNI.env, javaObject, fieldID)
-                return Date(timeIntervalSince1970: TimeInterval(timeInterval) / 1000) as? T
+                let dateObject = JNI.api.GetObjectField(JNI.env, javaObject, fieldID)
+                let methodID = try getJavaMethod(forClass: "java/util/Date", method: "getTime", sig:"()J")
+                let timeInterval = JNI.api.CallLongMethodA(JNI.env, dateObject, methodID, nil)
+                // Java save TimeInterval in UInt64 milliseconds
+                return Date(timeIntervalSince1970: TimeInterval(timeInterval) / 1000.0) as? T
             }
             if type == URL.self {
                 let sig = "Landroid/net/Uri;"

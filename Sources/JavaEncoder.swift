@@ -439,6 +439,9 @@ class JavaEnumValueEncodingContainer: SingleValueEncodingContainer {
 private var UriClass = JNI.GlobalFindClass("android/net/Uri")
 private var UriConstructor = JNI.api.GetStaticMethodID(JNI.env, JNI.GlobalFindClass("android/net/Uri"), "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
 
+private var DateClass = JNI.GlobalFindClass("java/util/Date")
+private var DateConstructor = JNI.api.GetMethodID(JNI.env, JNI.GlobalFindClass("java/util/Date"), "<init>", "(J)V")
+
 extension JavaEncoder {
     
     fileprivate func getFullClassName<T>(_ value: T) -> String{
@@ -452,7 +455,23 @@ extension JavaEncoder {
     fileprivate func box<T: Encodable>(_ value: T) throws -> JNIStorageObject {
         let storage: JNIStorageObject
         
-        if T.self == URL.self {
+        if T.self == Date.self {
+            let valueDate = value as! Date
+            
+            var locals = [jobject]()
+            var args = [jvalue]()
+            args.append(jvalue(j: jlong(valueDate.timeIntervalSince1970 * 1000)))
+            
+            let dateObject = JNIMethod.NewObject(className: "java/util/Date",
+                                                 classCache: &DateClass,
+                                                 methodSig: "(J)V",
+                                                 methodCache: &DateConstructor,
+                                                 args: &args,
+                                                 locals: &locals)
+            
+            storage = JNIStorageObject.init(type: .object(className: "java/util/Date"), javaObject: dateObject!)
+        }
+        else if T.self == URL.self {
             var locals = [jobject]()
             let javaString = (value as! URL).absoluteString.localJavaObject(&locals)
             var args = [jvalue]()
