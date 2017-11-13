@@ -53,43 +53,6 @@ class JNIStorageObject {
     }
 }
 
-public class SampleClass: Codable {
-    
-    public var string1: String?
-    
-    public var integer: Int = 32
-    public var int8: Int8 = 8
-    public var int16: Int16 = 16
-    public var int32: Int32 = 32
-    public var int64: Int64 = 64
-    
-    public var uint: UInt = 32
-    public var uint8: UInt8 = 32
-    public var uint16: UInt16 = 32
-    public var uint32: UInt32 = 32
-    public var uint64: UInt64 = 32
-    
-    public var sampleClass: SampleClass?
-    
-    public var objectArray: [SampleClass] = []
-    public var stringArray: [String] = ["one", "two", "free"]
-    public var numberArray: [Int] = [1, 2, 3]
-    public var arrayInArray: [[Int]] = [[1, 2, 3]]
-    public var dictInArray: [[Int:Int]] = [[1: 1, 2: 2, 3: 3]]
-    
-    public var dictSampleClass: [String: SampleClass] = [:]
-    public var dictStrings: [String: String] = ["oneKey": "oneValue"]
-    public var dictNumbers: [Int: Int] = [123: 2]
-    public var dict64Numbers: [UInt64: UInt64] = [123: 2]
-    public var dictInDict: [UInt64: [UInt64: UInt64]] = [123: [123: 2]]
-    public var arrayInDict: [UInt64: [UInt64]] = [123: [1, 2, 3]]
-    
-    public init() {
-    
-    }
-    
-}
-
 /// `JavaEncoder` facilitates the encoding of `Encodable` values into JSON.
 open class JavaEncoder: Encoder {
 
