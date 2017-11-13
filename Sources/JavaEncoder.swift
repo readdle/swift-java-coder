@@ -23,28 +23,25 @@ public enum JavaCodingError: Error {
 }
 
 indirect enum JNIStorageType {
-    case primitive(name: String)
     case object(className: String)
-    case array(type: JNIStorageType)
+    case array
     case dictionary
     
     var sig: String {
         switch self {
-        case .primitive(let name):
-            return name
-        case .array(let type):
-            return "[\(type.sig)"
         case .object(let className):
             return "L\(className);"
+        case .array:
+            return "L\(ArrayListClassname);"
         case .dictionary:
-            return "L\(JavaHashMapClassname);"
+            return "L\(HashMapClassname);"
         }
     }
 }
 
 class JNIStorageObject {
     let type: JNIStorageType
-    let javaObject: jobject
+    var javaObject: jobject
     
     init(type: JNIStorageType, javaObject: jobject) {
         self.type = type
@@ -54,6 +51,43 @@ class JNIStorageObject {
     deinit {
         JNI.api.DeleteLocalRef(JNI.env, javaObject)
     }
+}
+
+public class SampleClass: Codable {
+    
+    public var string1: String?
+    
+    public var integer: Int = 32
+    public var int8: Int8 = 8
+    public var int16: Int16 = 16
+    public var int32: Int32 = 32
+    public var int64: Int64 = 64
+    
+    public var uint: UInt = 32
+    public var uint8: UInt8 = 32
+    public var uint16: UInt16 = 32
+    public var uint32: UInt32 = 32
+    public var uint64: UInt64 = 32
+    
+    public var sampleClass: SampleClass?
+    
+    public var objectArray: [SampleClass] = []
+    public var stringArray: [String] = ["one", "two", "free"]
+    public var numberArray: [Int] = [1, 2, 3]
+    public var arrayInArray: [[Int]] = [[1, 2, 3]]
+    public var dictInArray: [[Int:Int]] = [[1: 1, 2: 2, 3: 3]]
+    
+    public var dictSampleClass: [String: SampleClass] = [:]
+    public var dictStrings: [String: String] = ["oneKey": "oneValue"]
+    public var dictNumbers: [Int: Int] = [123: 2]
+    public var dict64Numbers: [UInt64: UInt64] = [123: 2]
+    public var dictInDict: [UInt64: [UInt64: UInt64]] = [123: [123: 2]]
+    public var arrayInDict: [UInt64: [UInt64]] = [123: [1, 2, 3]]
+    
+    public init() {
+    
+    }
+    
 }
 
 /// `JavaEncoder` facilitates the encoding of `Encodable` values into JSON.
@@ -105,10 +139,12 @@ open class JavaEncoder: Encoder {
     
     // MARK: - Encoder Methods
     public func container<Key>(keyedBy: Key.Type) -> KeyedEncodingContainer<Key> {
-        let storage = self.popInstance()
+        guard let storage = self.javaObjects.popLast() else {
+            preconditionFailure("No instances in stack")
+        }
         switch storage.type {
         case .dictionary:
-            let container = JavaHashMapContainer<Key>(referencing: self, codingPath: self.codingPath, jniStorage: storage)
+            let container = JavaHashMapKeyedContainer<Key>(referencing: self, codingPath: self.codingPath, jniStorage: storage)
             return KeyedEncodingContainer(container)
         case let .object(className):
             let container = JavaObjectContainer<Key>(referencing: self, codingPath: self.codingPath, javaClass: className, jniStorage: storage)
@@ -119,12 +155,23 @@ open class JavaEncoder: Encoder {
     }
     
     public func unkeyedContainer() -> UnkeyedEncodingContainer {
-        let storage = self.popInstance()
-        return JavaArrayContainer(referencing: self, codingPath: self.codingPath, jniStorage: storage)
+        guard let storage = self.javaObjects.popLast() else {
+            preconditionFailure("No instances in stack")
+        }
+        switch storage.type {
+        case .dictionary:
+            return JavaHashMapUnkeyedContainer(referencing: self, codingPath: self.codingPath, jniStorage: storage)
+        case .array:
+            return JavaArrayContainer(referencing: self, codingPath: self.codingPath, jniStorage: storage)
+        default:
+            fatalError("Only unkeyed containers")
+        }
     }
     
     public func singleValueContainer() -> SingleValueEncodingContainer {
-        let storage = self.popInstance()
+        guard let storage = self.javaObjects.popLast() else {
+            preconditionFailure("No instances in stack")
+        }
         switch storage.type {
         case let .object(className):
             return JavaEnumValueEncodingContainer(encoder: self, javaClass: className, jniStorage: storage)
@@ -168,47 +215,10 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedEncodingContainerPro
         throw JavaCodingError.notSupported("JavaObjectContainer.encodeNil(forKey: \(key)")
     }
     
-    public func encode(_ value: Bool, forKey key: Key) throws {
-        let filed = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "Z")
-        JNI.api.SetBooleanField(JNI.env, javaObject, filed, jboolean(value ? JNI_TRUE : JNI_FALSE))
-    }
-    
-    public func encode(_ value: Int, forKey key: Key) throws {
-        let filed = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "J")
-        JNI.api.SetLongField(JNI.env, javaObject, filed, Int64(value))
-    }
-    public func encode(_ value: Int8, forKey key: Key) throws {
-        let filed = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "B")
-        JNI.api.SetByteField(JNI.env, javaObject, filed, value)
-    }
-    public func encode(_ value: Int16, forKey key: Key) throws {
-        let filed = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "S")
-        JNI.api.SetShortField(JNI.env, javaObject, filed, value)
-    }
-    public func encode(_ value: Int32, forKey key: Key) throws {
-        let filed = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "I")
-        JNI.api.SetIntField(JNI.env, javaObject, filed, jint(value))
-    }
-    public func encode(_ value: Int64, forKey key: Key) throws {
-        let filed = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "J")
-        JNI.api.SetLongField(JNI.env, javaObject, filed, value)
-    }
-    
-    public func encode(_ value: UInt, forKey key: Key) throws {
-        let filed = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "J")
-        JNI.api.SetLongField(JNI.env, javaObject, filed, jlong(bitPattern: UInt64(value)))
-    }
-    
-    public func encode(_ value: String, forKey key: Key) throws {
-        let filed = try getJavaField(forClass: javaClass, field: key.stringValue, sig: "Ljava/lang/String;")
-        var locals = [jobject]()
-        JNI.check(JNI.api.SetObjectField(JNI.env, javaObject, filed, value.localJavaObject(&locals)), &locals)
-    }
-    
     public func encode<T : Encodable>(_ value: T, forKey key: Key) throws {
         do {
             let object = try self.encoder.box(value)
-            let filed = try getJavaField(forClass: self.javaClass, field: key.stringValue, sig: object.type.sig)
+            let filed = try JNI.getJavaField(forClass: self.javaClass, field: key.stringValue, sig: object.type.sig)
             JNI.api.SetObjectField(JNI.env, self.javaObject, filed, object.javaObject)
         }
         catch {
@@ -239,7 +249,8 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedEncodingContainerPro
 }
 
 // MARK: - Encoding Containers
-fileprivate class JavaHashMapContainer<K : CodingKey> : KeyedEncodingContainerProtocol {
+// Keyed HashMap Container used for [String: Any] or [Int: Any]
+fileprivate class JavaHashMapKeyedContainer<K : CodingKey> : KeyedEncodingContainerProtocol {
     
     typealias Key = K
     
@@ -248,7 +259,6 @@ fileprivate class JavaHashMapContainer<K : CodingKey> : KeyedEncodingContainerPr
     private let encoder: JavaEncoder
     
     private let jniStorage: JNIStorageObject
-    private var javaPutMethod = try! getJavaMethod(forClass: JavaHashMapClassname, method: "put", sig: "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;")
     
     /// The path of coding keys taken to get to this point in encoding.
     private(set) public var codingPath: [CodingKey]
@@ -270,33 +280,18 @@ fileprivate class JavaHashMapContainer<K : CodingKey> : KeyedEncodingContainerPr
         throw JavaCodingError.notSupported("JavaHashMapContainer.encodeNil(forKey: \(key))")
     }
     
-    public func encode(_ value: String, forKey key: Key) throws {
-        var locals = [jobject]()
-        var args = [jvalue]()
-        args.append(jvalue(l: key.stringValue.localJavaObject(&locals)))
-        args.append(jvalue(l: value.localJavaObject(&locals)))
-        withUnsafePointer(to: &args[0]) { argsPtr in
-            let result = JNI.check(JNI.api.CallObjectMethodA(JNI.env, javaObject, javaPutMethod, argsPtr), &locals)
-            assert(result == nil, "Rewrite for key \(key.stringValue)")
-        }
-    }
-    
     public func encode<T : Encodable>(_ value: T, forKey key: Key) throws {
-        if value is String {
-            try self.encode(value as! String, forKey: key)
-            return
+        let keyStorage: JNIStorageObject
+        if let intValue = key.intValue {
+            keyStorage = try self.encoder.box(intValue)
         }
-
-        let object = try self.encoder.box(value)
-        var locals = [jobject]()
-        var args = [jvalue]()
-        args.append(jvalue(l: key.stringValue.localJavaObject(&locals)))
-        args.append(jvalue(l: object.javaObject))
+        else {
+            keyStorage = try self.encoder.box(key.stringValue)
+        }
         
-        withUnsafePointer(to: &args[0]) { argsPtr in
-            let result = JNI.check(JNI.api.CallObjectMethodA(JNI.env, javaObject, javaPutMethod, argsPtr), &locals)
-            assert(result == nil, "Rewrite for key \(key.stringValue)")
-        }
+        let valueStorage = try self.encoder.box(value)
+        let result = JNI.CallObjectMethod(javaObject, methodID: HashMapPutMethod, args: [jvalue(l: keyStorage.javaObject), jvalue(l: valueStorage.javaObject)])
+        assert(result == nil, "Rewrite for key \(key.stringValue)")
     }
     
     public func nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type, forKey key: Key) -> KeyedEncodingContainer<NestedKey> {
@@ -312,6 +307,64 @@ fileprivate class JavaHashMapContainer<K : CodingKey> : KeyedEncodingContainerPr
     }
     
     public func superEncoder(forKey key: Key) -> Encoder {
+        preconditionFailure("Not implemented: superEncoder")
+    }
+}
+
+fileprivate class JavaHashMapUnkeyedContainer : UnkeyedEncodingContainer {
+    // MARK: Properties
+    /// A reference to the encoder we're writing to.
+    private let encoder: JavaEncoder
+    
+    /// The path of coding keys taken to get to this point in encoding.
+    private(set) public var codingPath: [CodingKey]
+    
+    /// The number of elements encoded into the container.
+    public private(set) var count: Int = 0
+    
+    private let jniStorage: JNIStorageObject
+    
+    private var javaKey: JNIStorageObject?
+    
+    // MARK: - Initialization
+    /// Initializes `self` with the given references.
+    fileprivate init(referencing encoder: JavaEncoder, codingPath: [CodingKey], jniStorage: JNIStorageObject) {
+        self.encoder = encoder
+        self.codingPath = codingPath
+        self.jniStorage = jniStorage
+    }
+    
+    private var javaObject: jobject {
+        return jniStorage.javaObject
+    }
+    
+    // MARK: - UnkeyedEncodingContainer Methods
+    public func encodeNil() throws {
+        throw JavaCodingError.notSupported("JavaArrayContainer.encodeNil")
+    }
+    
+    public func encode<T : Encodable>(_ value: T) throws {
+        let javaValue = try self.encoder.box(value)
+        if let javaKey = self.javaKey {
+            let result = JNI.CallObjectMethod(javaObject, methodID: HashMapPutMethod, args: [jvalue(l: javaKey.javaObject), jvalue(l: javaValue.javaObject)])
+            assert(result == nil, "Rewrite for key")
+            self.javaKey = nil
+        }
+        else {
+            self.javaKey = javaValue
+        }
+        count += 1
+    }
+    
+    public func nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type) -> KeyedEncodingContainer<NestedKey> {
+        preconditionFailure("Not implemented: nestedContainer")
+    }
+    
+    public func nestedUnkeyedContainer() -> UnkeyedEncodingContainer {
+        preconditionFailure("Not implemented: nestedUnkeyedContainer")
+    }
+    
+    public func superEncoder() -> Encoder {
         preconditionFailure("Not implemented: superEncoder")
     }
 }
@@ -346,37 +399,10 @@ fileprivate class JavaArrayContainer : UnkeyedEncodingContainer {
         throw JavaCodingError.notSupported("JavaArrayContainer.encodeNil")
     }
     
-    public func encode(_ value: Int) throws {
-        var value = jlong(value)
-        JNI.api.SetLongArrayRegion(JNI.env, self.javaObject, jsize(count), 1, &value)
-        count += 1
-    }
-    
-    public func encode(_ value: String) throws {
-        var locals = [jobject]()
-        JNI.check(JNI.api.SetObjectArrayElement(JNI.env,
-                                      self.javaObject,
-                                      jsize(self.count),
-                                      value.localJavaObject(&locals)), &locals)
-        count += 1
-    }
-    
     public func encode<T : Encodable>(_ value: T) throws {
-        if value is String {
-            try self.encode(value as! String)
-            return
-        }
-        if value is Int {
-            try self.encode(value as! Int)
-            return
-        }
-
         let storeObject = try self.encoder.box(value)
-        JNI.api.SetObjectArrayElement(JNI.env,
-                                      self.javaObject,
-                                      jsize(self.count),
-                                      storeObject.javaObject)
-        
+        let rewrite = JNI.CallBooleanMethod(self.javaObject, methodID: ArrayListAddMethod, args: [jvalue(l: storeObject.javaObject)])
+        assert(rewrite == JNI.TRUE, "ArrayList should always return true from add()")
         count += 1
     }
     
@@ -408,128 +434,129 @@ class JavaEnumValueEncodingContainer: SingleValueEncodingContainer {
         self.jniStorage = jniStorage
     }
     
-    private var javaObject: jobject {
-        return jniStorage.javaObject
-    }
-    
     public func encodeNil() throws {
         throw JavaCodingError.notSupported("JavaSingleValueEncodingContainer.encodeNil")
     }
     
     public func encode<T : Encodable>(_ value: T) throws {
-        if value is Int {
-            let fieldID = try getJavaField(forClass: javaClass, field: "rawValue", sig: "J")
-            JNI.api.SetLongField(JNI.env, javaObject, fieldID, jlong(value as! Int))
-            return
-        }
-        if value is UInt {
-            let filed = try getJavaField(forClass: javaClass, field: "rawValue", sig: "J")
-            JNI.api.SetLongField(JNI.env, javaObject, filed, jlong(bitPattern: UInt64(value as! UInt)))
-            return
-        }
-        if value is UInt32 {
-            let filed = try getJavaField(forClass: javaClass, field: "rawValue", sig: "J")
-            JNI.api.SetLongField(JNI.env, javaObject, filed, jlong(value as! UInt32))
-            return
-        }
-        throw JavaCodingError.notSupported("JavaSingleValueEncodingContainer.encode(value: \(value) \(type(of:value))")
+        let rawValue = try self.encoder.box(value)
+        let clazz = try JNI.getJavaClass(javaClass)
+        let valueOfMethodID = JNI.api.GetStaticMethodID(JNI.env, clazz, "valueOf", "(\(rawValue.type.sig))L\(javaClass);")
+        JNI.api.DeleteLocalRef(JNI.env, jniStorage.javaObject)
+        jniStorage.javaObject = JNI.CallStaticObjectMethod(clazz, methodID: valueOfMethodID!, args: [jvalue(l: rawValue.javaObject)])!
     }
 }
 
-private var UriClass = JNI.GlobalFindClass("android/net/Uri")
-private var UriConstructor = JNI.api.GetStaticMethodID(JNI.env, JNI.GlobalFindClass("android/net/Uri"), "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
-
-private var DateClass = JNI.GlobalFindClass("java/util/Date")
-private var DateConstructor = JNI.api.GetMethodID(JNI.env, JNI.GlobalFindClass("java/util/Date"), "<init>", "(J)V")
-
 extension JavaEncoder {
     
-    fileprivate func getFullClassName<T>(_ value: T) -> String{
-        if value is [String: Encodable] {
-            return JavaHashMapClassname
-        }
-        return package  + "/" + String(describing: type(of: value))
-    }
-    
-    @discardableResult
     fileprivate func box<T: Encodable>(_ value: T) throws -> JNIStorageObject {
         let storage: JNIStorageObject
         
-        if T.self == Date.self {
-            let valueDate = value as! Date
-            
+        if T.self == Int.self {
+            let valueInt = value as! Int
+            // jint for macOS and Android defferent, that's why we make cast to jint() here
+            let args = [jvalue(i: jint(valueInt))]
+            let javaObject = JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)
+            storage = JNIStorageObject.init(type: .object(className: IntegerClassname), javaObject: javaObject!)
+        }
+        else if T.self == Int8.self {
+            let valueInt8 = value as! Int8
+            let args = [jvalue(b: valueInt8)]
+            let javaObject = JNI.NewObject(ByteClass, methodID: ByteConstructor, args: args)
+            storage = JNIStorageObject.init(type: .object(className: ByteClassname), javaObject: javaObject!)
+        }
+        else if T.self == Int16.self {
+            let valueInt16 = value as! Int16
+            let args = [jvalue(s: valueInt16)]
+            let javaObject = JNI.NewObject(ShortClass, methodID: ShortConstructor, args: args)
+            storage = JNIStorageObject.init(type: .object(className: ShortClassname), javaObject: javaObject!)
+        }
+        else if T.self == Int32.self {
+            let valueInt32 = value as! Int32
+            let args = [jvalue(i: jint(valueInt32))]
+            let javaObject = JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)
+            storage = JNIStorageObject.init(type: .object(className: IntegerClassname), javaObject: javaObject!)
+        }
+        else if T.self == Int64.self {
+            let valueInt64 = value as! Int64
+            let args = [jvalue(j: valueInt64)]
+            let javaObject = JNI.NewObject(LongClass, methodID: LongConstructor, args: args)
+            storage = JNIStorageObject.init(type: .object(className: LongClassname), javaObject: javaObject!)
+        }
+        else if T.self == UInt.self {
+            let valueUInt = value as! UInt
+            let args = [jvalue(j:  Int64(valueUInt))]
+            let javaObject = JNI.NewObject(LongClass, methodID: LongConstructor, args: args)
+            storage = JNIStorageObject.init(type: .object(className: LongClassname), javaObject: javaObject!)
+        }
+        else if T.self == UInt8.self {
+            let valueUInt8 = value as! UInt8
+            let args = [jvalue(s: Int16(valueUInt8))]
+            let javaObject = JNI.NewObject(ShortClass, methodID: ShortConstructor, args: args)
+            storage = JNIStorageObject.init(type: .object(className: ShortClassname), javaObject: javaObject!)
+        }
+        else if T.self == UInt16.self {
+            let valueUInt16 = value as! UInt16
+            let args = [jvalue(i: jint(valueUInt16))]
+            let javaObject = JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)
+            storage = JNIStorageObject.init(type: .object(className: IntegerClassname), javaObject: javaObject!)
+        }
+        else if T.self == UInt32.self {
+            let valueUInt32 = value as! UInt32
+            let args = [jvalue(j: Int64(valueUInt32))]
+            let javaObject = JNI.NewObject(LongClass, methodID: LongConstructor, args: args)
+            storage = JNIStorageObject.init(type: .object(className: LongClassname), javaObject: javaObject!)
+        }
+        else if T.self == UInt64.self {
+            let valueInt64 = value as! UInt64
             var locals = [jobject]()
-            var args = [jvalue]()
-            args.append(jvalue(j: jlong(valueDate.timeIntervalSince1970 * 1000)))
-            
-            let dateObject = JNIMethod.NewObject(className: "java/util/Date",
-                                                 classCache: &DateClass,
-                                                 methodSig: "(J)V",
-                                                 methodCache: &DateConstructor,
-                                                 args: &args,
-                                                 locals: &locals)
-            
-            storage = JNIStorageObject.init(type: .object(className: "java/util/Date"), javaObject: dateObject!)
+            let args = [jvalue(l: String(valueInt64).localJavaObject(&locals))]
+            let javaObject = JNI.check(JNI.NewObject(BigIntegerClass, methodID: BigIntegerConstructor, args: args), &locals)
+            storage = JNIStorageObject.init(type: .object(className: BigIntegerClassname), javaObject: javaObject!)
+        }
+        else if T.self == Bool.self {
+            let valueBool = value as! Bool
+            let args = [jvalue(z: valueBool ? JNI.TRUE : JNI.FALSE)]
+            let javaObject = JNI.NewObject(BooleanClass, methodID: BooleanConstructor, args: args)
+            storage = JNIStorageObject.init(type: .object(className: BooleanClassname), javaObject: javaObject!)
+        }
+        else if T.self == String.self {
+            let valueString = value as! String
+            var locals = [jobject]()
+            let javaObject = valueString.localJavaObject(&locals)
+            // Locals ignored because JNIStorageObject take ownership of LocalReference
+            storage = JNIStorageObject.init(type: .object(className: StringClassname), javaObject: javaObject!)
+        }
+        else if T.self == Date.self {
+            let valueDate = value as! Date
+            let args = [jvalue(j: jlong(valueDate.timeIntervalSince1970 * 1000))]
+            let dateObject = JNI.NewObject(DateClass, methodID: DateConstructor, args: args)
+            storage = JNIStorageObject.init(type: .object(className: DateClassname), javaObject: dateObject!)
         }
         else if T.self == URL.self {
             var locals = [jobject]()
             let javaString = (value as! URL).absoluteString.localJavaObject(&locals)
-            var args = [jvalue]()
-            args.append(jvalue(l: javaString))
-            
-            let uriObject = JNIMethod.CallStaticObjectMethod(className: "android/net/Uri",
-                                                             classCache: &UriClass,
-                                                             methodName: "parse",
-                                                             methodSig: "(Ljava/lang/String;)Landroid/net/Uri;",
-                                                             methodCache: &UriConstructor,
-                                                             args: &args,
-                                                             locals: &locals)
-            
-            storage = JNIStorageObject.init(type: .object(className: "android/net/Uri"), javaObject: uriObject!)
-        }
-        else if T.self == [String].self {
-            let value = value as! [String]
-            let javaClass = try getJavaClass(JavaStringClassname)
-            guard let javaObject = JNI.api.NewObjectArray(JNI.env, jsize(value.count), javaClass, nil) else {
-                throw JavaCodingError.cantCreateObject("\(JavaStringClassname)[]")
-            }
-            storage = JNIStorageObject(type: .array(type: .object(className: JavaStringClassname)), javaObject: javaObject)
-            javaObjects.append(storage)
-            try value.encode(to: self)
-        }
-        else if T.self == [Int].self {
-            let value = value as! [Int]
-            guard let javaObject = JNI.api.NewLongArray(JNI.env, jsize(value.count)) else {
-                throw JavaCodingError.cantCreateObject("long[]")
-            }
-            storage = JNIStorageObject(type: .array(type: .primitive(name: "J")), javaObject: javaObject)
-            javaObjects.append(storage)
-            try value.encode(to: self)
-        }
-        else if let valueEncodableArray = value as? [Encodable] {
-            let subType = String("\(T.self)".dropFirst(6)).dropLast(1)
-            let fullClassName = package  + "/" + subType
-            let javaClass = try getJavaClass(fullClassName)
-            guard let javaObject = JNI.api.NewObjectArray(JNI.env, jsize(valueEncodableArray.count), javaClass, nil) else {
-                throw JavaCodingError.cantCreateObject("\(fullClassName)[]")
-            }
-            storage = JNIStorageObject(type: .array(type: .object(className: fullClassName)), javaObject: javaObject)
-            javaObjects.append(storage)
-            try value.encode(to: self)
+            let args = [jvalue(l: javaString)]
+            let uriObject = JNI.check(JNI.CallStaticObjectMethod(UriClass, methodID: UriConstructor!, args: args), &locals)
+            storage = JNIStorageObject.init(type: .object(className: UriClassname), javaObject: uriObject!)
         }
         else {
             let storageType: JNIStorageType
             let fullClassName: String
-            if value is [String: Encodable] {
-                fullClassName = JavaHashMapClassname
+            if value is [AnyHashable: Encodable] {
+                fullClassName = HashMapClassname
                 storageType = .dictionary
+            }
+            else if value is [Encodable] {
+                fullClassName = ArrayListClassname
+                storageType = .array
             }
             else {
                 fullClassName = package  + "/" + String(describing: type(of: value))
                 storageType = .object(className: fullClassName)
             }
-            let javaClass = try getJavaClass(fullClassName)
-            let emptyContructor = try getJavaEmptyConstructor(forClass: fullClassName)
+            let javaClass = try JNI.getJavaClass(fullClassName)
+            let emptyContructor = try JNI.getJavaEmptyConstructor(forClass: fullClassName)
             guard let javaObject = JNI.api.NewObjectA(JNI.env, javaClass, emptyContructor, nil) else {
                 throw JavaCodingError.cantCreateObject(fullClassName)
             }
@@ -538,12 +565,5 @@ extension JavaEncoder {
             try value.encode(to: self)
         }
         return storage
-    }
-    
-    fileprivate func popInstance() -> JNIStorageObject {
-        guard let javaObject = self.javaObjects.popLast() else {
-            preconditionFailure("No instances in stack")
-        }
-        return javaObject
     }
 }
