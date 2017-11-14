@@ -87,7 +87,6 @@ extension jdouble: JNIArgumentProtocol {
 extension jobject: JNIArgumentProtocol {
     
     public func value() -> jvalue {
-        NSLog("JNIArgumentProtocol.value jobject")
         return jvalue(l: self)
     }
     
@@ -97,7 +96,6 @@ extension jobject: JNIArgumentProtocol {
 extension jvalue: JNIArgumentProtocol {
 
     public func value() -> jvalue {
-        NSLog("JNIArgumentProtocol.value jvalue")
         return self
     }
     
