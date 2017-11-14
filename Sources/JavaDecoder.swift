@@ -261,7 +261,7 @@ fileprivate class JavaHashMapKeyedContainer<K : CodingKey>: KeyedDecodingContain
                 throw JavaCodingError.wrongArrayLength
             }
             if keySig == nil {
-                keySig = try self.decoder.getJavaClassname(from: object).sig
+                keySig = self.decoder.getJavaClassname(from: object).sig
             }
             if keySig == "Ljava/lang/String;" {
                 let stringKey = try self.decoder.unbox(type: String.self, javaObject: object)

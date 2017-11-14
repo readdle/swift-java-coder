@@ -86,6 +86,10 @@ fileprivate let javaFieldLock = NSLock()
 
 public extension JNICore {
     
+    public var NULL: JNIArgumentProtocol {
+        return jnull()
+    }
+    
     public var TRUE: jboolean {
         return jboolean(JNI_TRUE)
     }
@@ -286,5 +290,29 @@ public extension JNICore {
         }
     }
     
+    // MARK: New API
+    public func CallVoidMethod(_ object: jobject, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) {
+        checkArgumentAndWrap(args: args, { argsPtr in
+            api.CallVoidMethodA(env, object, methodID, argsPtr)
+        })
+    }
+    
+    public func CallStaticVoidMethod(_ clazz: jclass, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) {
+        checkArgumentAndWrap(args: args, { argsPtr in
+            api.CallStaticVoidMethodA(env, clazz, methodID, argsPtr)
+        })
+    }
+    
+    private func checkArgumentAndWrap<Result>(args: [JNIArgumentProtocol], _ block: (_ argsPtr: UnsafePointer<jvalue>?) -> Result) -> Result {
+        if args.count > 0 {
+            var argsValues = args.map({ $0.value() })
+            return withUnsafePointer(to: &argsValues[0]) { argsPtr in
+                return block(argsPtr)
+            }
+        }
+        else {
+            return block(nil)
+        }
+    }
+    
 }
-
