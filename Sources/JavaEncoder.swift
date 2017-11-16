@@ -41,11 +41,15 @@ indirect enum JNIStorageType {
 
 class JNIStorageObject {
     let type: JNIStorageType
-    var javaObject: jobject
+    var javaObject: jobject!
     
     init(type: JNIStorageType, javaObject: jobject) {
         self.type = type
         self.javaObject = javaObject
+    }
+    
+    init(type: JNIStorageType) {
+        self.type = type
     }
     
     deinit {
@@ -404,9 +408,15 @@ class JavaEnumValueEncodingContainer: SingleValueEncodingContainer {
     public func encode<T : Encodable>(_ value: T) throws {
         let rawValue = try self.encoder.box(value)
         let clazz = try JNI.getJavaClass(javaClass)
-        let valueOfMethodID = JNI.api.GetStaticMethodID(JNI.env, clazz, "valueOf", "(\(rawValue.type.sig))L\(javaClass);")
-        JNI.api.DeleteLocalRef(JNI.env, jniStorage.javaObject)
-        jniStorage.javaObject = JNI.CallStaticObjectMethod(clazz, methodID: valueOfMethodID!, args: [jvalue(l: rawValue.javaObject)])!
+        // If jniStorage.javaObject == nil its enum, else optionSet
+        if jniStorage.javaObject == nil {
+            let valueOfMethodID = JNI.api.GetStaticMethodID(JNI.env, clazz, "valueOf", "(\(rawValue.type.sig))L\(javaClass);")
+            jniStorage.javaObject = JNI.CallStaticObjectMethod(clazz, methodID: valueOfMethodID!, args: [jvalue(l: rawValue.javaObject)])!
+        }
+        else {
+            let filed = try JNI.getJavaField(forClass: self.javaClass, field: "rawValue", sig: rawValue.type.sig)
+            JNI.api.SetObjectField(JNI.env, self.jniStorage.javaObject, filed, rawValue.javaObject)
+        }
     }
 }
 
@@ -502,6 +512,11 @@ extension JavaEncoder {
             let args = [jvalue(l: javaString)]
             let uriObject = JNI.check(JNI.CallStaticObjectMethod(UriClass, methodID: UriConstructor!, args: args), &locals)
             storage = JNIStorageObject.init(type: .object(className: UriClassname), javaObject: uriObject!)
+        }
+        else if Mirror(reflecting: value).displayStyle == .enum {
+            let fullClassName = package  + "/" + String(describing: type(of: value))
+            // We don't create object for enum. Should be created at JavaEnumValueEncodingContainer
+            storage = JNIStorageObject(type: .object(className: fullClassName))
         }
         else {
             let storageType: JNIStorageType
