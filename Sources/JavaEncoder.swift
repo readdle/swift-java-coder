@@ -410,8 +410,11 @@ class JavaEnumValueEncodingContainer: SingleValueEncodingContainer {
         let clazz = try JNI.getJavaClass(javaClass)
         // If jniStorage.javaObject == nil its enum, else optionSet
         if jniStorage.javaObject == nil {
-            let valueOfMethodID = JNI.api.GetStaticMethodID(JNI.env, clazz, "valueOf", "(\(rawValue.type.sig))L\(javaClass);")
-            jniStorage.javaObject = JNI.CallStaticObjectMethod(clazz, methodID: valueOfMethodID!, args: [jvalue(l: rawValue.javaObject)])!
+            let valueOfMethodID = try JNI.getStaticJavaMethod(forClass: javaClass, method: "valueOf", sig: "(\(rawValue.type.sig))L\(javaClass);")
+            guard let javaObject = JNI.CallStaticObjectMethod(clazz, methodID: valueOfMethodID, args: [jvalue(l: rawValue.javaObject)]) else {
+                throw JavaCodingError.nilNotSupported("\(javaClass).valueOf()")
+            }
+            jniStorage.javaObject = javaObject
         }
         else {
             let filed = try JNI.getJavaField(forClass: self.javaClass, field: "rawValue", sig: rawValue.type.sig)
@@ -517,6 +520,8 @@ extension JavaEncoder {
             let fullClassName = package  + "/" + String(describing: type(of: value))
             // We don't create object for enum. Should be created at JavaEnumValueEncodingContainer
             storage = JNIStorageObject(type: .object(className: fullClassName))
+            javaObjects.append(storage)
+            try value.encode(to: self)
         }
         else {
             let storageType: JNIStorageType

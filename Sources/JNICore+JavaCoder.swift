@@ -78,10 +78,12 @@ fileprivate extension NSLock {
     
 fileprivate var javaClasses = [String: jclass]()
 fileprivate var javaMethods = [String: jmethodID]()
+fileprivate var javaStaticMethods = [String: jmethodID]()
 fileprivate var javaFields = [String: jmethodID]()
 
 fileprivate let javaClassesLock = NSLock()
 fileprivate let javaMethodLock = NSLock()
+fileprivate let javaStaticMethodLock = NSLock()
 fileprivate let javaFieldLock = NSLock()
 
 public extension JNICore {
@@ -156,6 +158,26 @@ public extension JNICore {
                 throw JNIError.methodNotFoundException(key)
             }
             javaMethods[key] = javaMethodID
+            return javaMethodID
+        }
+    }
+    
+    public func getStaticJavaMethod(forClass className: String, method: String, sig: String) throws -> jmethodID {
+        let key = "\(className).\(method)\(sig)"
+        let javaClass = try getJavaClass(className)
+        if let methodID = javaStaticMethods[key] {
+            return methodID
+        }
+        return try javaStaticMethodLock.sync {
+            if let methodID = javaStaticMethods[key] {
+                return methodID
+            }
+            guard let javaMethodID = JNI.api.GetStaticMethodID(JNI.env, javaClass, method, sig) else {
+                JNI.api.ExceptionClear(JNI.env)
+                JNI.ExceptionReset()
+                throw JNIError.methodNotFoundException(key)
+            }
+            javaStaticMethods[key] = javaMethodID
             return javaMethodID
         }
     }
