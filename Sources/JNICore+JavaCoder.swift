@@ -88,10 +88,6 @@ fileprivate let javaFieldLock = NSLock()
 
 public extension JNICore {
     
-    public var NULL: JNIArgumentProtocol {
-        return jnull()
-    }
-    
     public var TRUE: jboolean {
         return jboolean(JNI_TRUE)
     }
@@ -327,8 +323,12 @@ public extension JNICore {
     
     private func checkArgumentAndWrap<Result>(args: [JNIArgumentProtocol], _ block: (_ argsPtr: UnsafePointer<jvalue>?) -> Result) -> Result {
         if args.count > 0 {
-            var argsValues = args.map({ $0.value() })
+            var locals = [jobject]()
+            var argsValues = args.map({ $0.value(locals: &locals) })
             return withUnsafePointer(to: &argsValues[0]) { argsPtr in
+                defer {
+                    _ = JNI.check(Void.self, &locals)
+                }
                 return block(argsPtr)
             }
         }
