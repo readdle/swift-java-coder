@@ -8,6 +8,7 @@
 import Foundation
 import CoreFoundation
 import java_swift
+import AnyCodable
 
 public enum MissingFieldsStrategy: Error {
     case `throw`
@@ -26,6 +27,7 @@ indirect enum JNIStorageType {
     case object(className: String)
     case array
     case dictionary
+    case anyCodable(codable: JNIStorageType)
     
     var sig: String {
         switch self {
@@ -35,6 +37,8 @@ indirect enum JNIStorageType {
             return "L\(ArrayListClassname);"
         case .dictionary:
             return "L\(HashMapClassname);"
+        case .anyCodable(let codable):
+            return codable.sig
         }
     }
 }
@@ -116,6 +120,9 @@ open class JavaEncoder: Encoder {
         case let .object(className):
             let container = JavaObjectContainer<Key>(referencing: self, codingPath: self.codingPath, javaClass: className, jniStorage: storage)
             return KeyedEncodingContainer(container)
+        case .anyCodable:
+            let container = JavaAnyCodableContainer<Key>(referencing: self, codingPath: self.codingPath, jniStorage: storage)
+            return KeyedEncodingContainer(container)
         default:
             fatalError("Only keyed containers")
         }
@@ -190,7 +197,7 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedEncodingContainerPro
         }
         catch {
             if self.encoder.missingFieldsStrategy == .ignore {
-                // Ignore
+                NSLog("Ignore error: \(error)")
             }
             else {
                 throw error
@@ -207,7 +214,8 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedEncodingContainerPro
     }
     
     public func superEncoder() -> Encoder {
-        preconditionFailure("Not implemented: superEncoder")
+        self.encoder.javaObjects.append(self.jniStorage)
+        return self.encoder
     }
     
     public func superEncoder(forKey key: Key) -> Encoder {
@@ -423,6 +431,84 @@ class JavaEnumValueEncodingContainer: SingleValueEncodingContainer {
     }
 }
 
+// MARK: - AnyCodable Containers
+fileprivate class JavaAnyCodableContainer<K : CodingKey> : KeyedEncodingContainerProtocol {
+
+    typealias Key = K
+
+    // MARK: Properties
+    /// A reference to the encoder we're writing to.
+    private let encoder: JavaEncoder
+    private let jniStorage: JNIStorageObject
+
+    /// The path of coding keys taken to get to this point in encoding.
+    private(set) public var codingPath: [CodingKey]
+
+    // MARK: - Initialization
+    /// Initializes `self` with the given references.
+    fileprivate init(referencing encoder: JavaEncoder, codingPath: [CodingKey], jniStorage: JNIStorageObject) {
+        self.encoder = encoder
+        self.codingPath = codingPath
+        self.jniStorage = jniStorage
+    }
+
+    private var javaObject: jobject {
+        return jniStorage.javaObject
+    }
+
+    // MARK: - KeyedEncodingContainerProtocol Methods
+    public func encodeNil(forKey key: Key) throws {
+        throw JavaCodingError.notSupported("JavaObjectContainer.encodeNil(forKey: \(key)")
+    }
+
+    public func encode<T : Encodable>(_ value: T, forKey key: Key) throws {
+        if key.stringValue == "typeName" {
+            // ignore typeName
+            return
+        }
+        do {
+            let jniObject = try self.encoder.box(value)
+            self.jniStorage.javaObject = JNI.api.NewLocalRef(JNI.env, jniObject.javaObject)
+        }
+        catch {
+            if self.encoder.missingFieldsStrategy == .ignore {
+                NSLog("Ignore error: \(error)")
+            }
+            else {
+                throw error
+            }
+        }
+    }
+
+    public func nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type, forKey key: Key) -> KeyedEncodingContainer<NestedKey> {
+        preconditionFailure("Not implemented: nestedContainer")
+    }
+
+    public func nestedUnkeyedContainer(forKey key: Key) -> UnkeyedEncodingContainer {
+        switch self.jniStorage.type {
+        case let .anyCodable(codable):
+            switch codable {
+            case .dictionary:
+                return JavaHashMapUnkeyedContainer(referencing: self.encoder, codingPath: self.codingPath, jniStorage: self.jniStorage)
+            case .array:
+                return JavaArrayContainer(referencing: self.encoder, codingPath: self.codingPath, jniStorage: self.jniStorage)
+            default:
+                fatalError("Only single containers")
+            }
+        default:
+            fatalError("Only single containers")
+        }
+    }
+
+    public func superEncoder() -> Encoder {
+        preconditionFailure("Not implemented: superEncoder")
+    }
+
+    public func superEncoder(forKey key: Key) -> Encoder {
+        preconditionFailure("Not implemented: superEncoder")
+    }
+}
+
 extension JavaEncoder {
     
     fileprivate func box<T: Encodable>(_ value: T) throws -> JNIStorageObject {
@@ -516,6 +602,31 @@ extension JavaEncoder {
             let uriObject = JNI.check(JNI.CallStaticObjectMethod(UriClass, methodID: UriConstructor!, args: args), &locals)
             storage = JNIStorageObject.init(type: .object(className: UriClassname), javaObject: uriObject!)
         }
+        else if T.self == AnyCodable.self {
+            let anyCodableValue = value as! AnyCodable
+            let storageType: JNIStorageType
+            let fullClassName: String
+            if anyCodableValue.typeName == AnyCodable.DictionaryTypeName {
+                fullClassName = HashMapClassname
+                storageType = .anyCodable(codable: .dictionary)
+            }
+            else if anyCodableValue.typeName == AnyCodable.ArrayTypeName {
+                fullClassName = ArrayListClassname
+                storageType = .anyCodable(codable: .array)
+            }
+            else {
+                fullClassName = package  + "/" + anyCodableValue.typeName
+                storageType = .anyCodable(codable: .object(className: fullClassName))
+            }
+            let javaClass = try JNI.getJavaClass(fullClassName)
+            let emptyConstructor = try JNI.getJavaEmptyConstructor(forClass: fullClassName)
+            guard let javaObject = JNI.api.NewObjectA(JNI.env, javaClass, emptyConstructor, nil) else {
+                throw JavaCodingError.cantCreateObject(fullClassName)
+            }
+            storage = JNIStorageObject(type: storageType, javaObject: javaObject)
+            javaObjects.append(storage)
+            try anyCodableValue.encode(to: self)
+        }
         else if Mirror(reflecting: value).displayStyle == .enum {
             let fullClassName = package  + "/" + String(describing: type(of: value))
             // We don't create object for enum. Should be created at JavaEnumValueEncodingContainer
@@ -539,8 +650,8 @@ extension JavaEncoder {
                 storageType = .object(className: fullClassName)
             }
             let javaClass = try JNI.getJavaClass(fullClassName)
-            let emptyContructor = try JNI.getJavaEmptyConstructor(forClass: fullClassName)
-            guard let javaObject = JNI.api.NewObjectA(JNI.env, javaClass, emptyContructor, nil) else {
+            let emptyConstructor = try JNI.getJavaEmptyConstructor(forClass: fullClassName)
+            guard let javaObject = JNI.api.NewObjectA(JNI.env, javaClass, emptyConstructor, nil) else {
                 throw JavaCodingError.cantCreateObject(fullClassName)
             }
             storage = JNIStorageObject(type: storageType, javaObject: javaObject)

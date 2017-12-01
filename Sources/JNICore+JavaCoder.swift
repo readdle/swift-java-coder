@@ -49,6 +49,8 @@ let BooleanConstructor = try! JNI.getJavaMethod(forClass: BooleanClassname, meth
 
 let ObjectToStringMethod = try! JNI.getJavaMethod(forClass: "java/lang/Object", method: "toString", sig: "()Ljava/lang/String;")
 let ClassGetNameMethod = try! JNI.getJavaMethod(forClass: ClassClassname, method: "getName", sig: "()L\(StringClassname);")
+let ClassGetFieldMethod = try! JNI.getJavaMethod(forClass: ClassClassname, method: "getField", sig: "(Ljava/lang/String;)Ljava/lang/reflect/Field;")
+let FieldGetTypedMethod = try! JNI.getJavaMethod(forClass: "java/lang/reflect/Field", method: "getType", sig: "()L\(ClassClassname);")
 let NumberByteValueMethod = try! JNI.getJavaMethod(forClass: "java/lang/Number", method: "byteValue", sig: "()B")
 let NumberShortValueMethod = try! JNI.getJavaMethod(forClass: "java/lang/Number", method: "shortValue", sig: "()S")
 let NumberIntValueMethod = try! JNI.getJavaMethod(forClass: "java/lang/Number", method: "intValue", sig: "()I")
