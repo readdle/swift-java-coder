@@ -449,13 +449,17 @@ fileprivate class JavaArrayContainer: UnkeyedDecodingContainer {
     
     let decoder: JavaDecoder
     let jniStorage: JNIStorageObject
-    let javaObject: jobject
+    let javaIterator: jobject
     
     fileprivate init(decoder: JavaDecoder, jniStorage: JNIStorageObject) {
         self.decoder = decoder
         self.jniStorage = jniStorage
-        self.javaObject = jniStorage.javaObject
-        self.count = Int(JNI.CallIntMethod(self.javaObject, methodID: ArrayListSizeMethod))
+        self.count = Int(JNI.CallIntMethod(jniStorage.javaObject, methodID: CollectionSizeMethod))
+        self.javaIterator = JNI.CallObjectMethod(jniStorage.javaObject, methodID: CollectionIteratorMethod)!
+    }
+
+    deinit {
+        JNI.DeleteLocalRef(javaIterator)
     }
     
     func decodeNil() throws -> Bool {
@@ -463,7 +467,7 @@ fileprivate class JavaArrayContainer: UnkeyedDecodingContainer {
     }
     
     func decode<T>(_ type: T.Type) throws -> T where T : Decodable {
-        guard let object = JNI.CallObjectMethod(self.javaObject, methodID: ArrayListGetMethod, args: [self.index]) else {
+        guard let object = JNI.CallObjectMethod(self.javaIterator, methodID: IteratorNextMethod) else {
             throw JavaCodingError.cantFindObject("Array out of range: \(self.currentIndex)")
         }
         defer {
@@ -661,6 +665,9 @@ extension JavaDecoder {
             if className == ArrayListClassname {
                 codableType = .array
             }
+            else if className == HashSetClassname {
+                codableType = .array
+            }
             else if className == HashMapClassname {
                 codableType = .dictionary
             }
@@ -678,6 +685,8 @@ extension JavaDecoder {
             let obj = JNI.api.NewLocalRef(JNI.env, javaObject)!
             switch stringType {
             case _ where stringType.starts(with: "Array<"):
+                storageObject = JNIStorageObject(type: .array, javaObject: obj)
+            case _ where stringType.starts(with: "Set<"):
                 storageObject = JNIStorageObject(type: .array, javaObject: obj)
             case _ where stringType.starts(with: "Dictionary<"):
                 storageObject = JNIStorageObject(type: .dictionary, javaObject: obj)
@@ -735,6 +744,9 @@ extension JavaDecoder {
         else if "\(forType)".starts(with: "Array<") {
             return ArrayListClassname
         }
+        else if "\(forType)".starts(with: "Set<") {
+            return HashSetClassname
+        }
         else if "\(forType)".starts(with: "Dictionary<") {
             return HashMapClassname
         }
@@ -751,6 +763,8 @@ extension JavaDecoder {
         JNI.DeleteLocalRef(javaClassName)
         switch className {
         case ArrayListClassname:
+            return .array
+        case HashSetClassname:
             return .array
         case HashMapClassname:
             return .dictionary

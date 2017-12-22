@@ -23,6 +23,7 @@ let HashMapClassname = "java/util/HashMap"
 let SetClassname = "java/util/Set"
 let UriClassname = "android/net/Uri"
 let DateClassname = "java/util/Date"
+let HashSetClassname = "java/util/HashSet"
 
 // MARK: Java Classes
 var IntegerClass = try! JNI.getJavaClass("java/lang/Integer")
@@ -36,6 +37,7 @@ let ExceptionClass = try! JNI.getJavaClass("java/lang/Exception")
 let UriClass = try! JNI.getJavaClass("android/net/Uri")
 let DateClass = try! JNI.getJavaClass("java/util/Date")
 let VMDebugClass = try! JNI.getJavaClass("dalvik/system/VMDebug")
+let HashSetClass = try! JNI.getJavaClass("java/util/HashSet")
 
 // MARK: Java methods
 let UriConstructor = JNI.api.GetStaticMethodID(JNI.env, UriClass, "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
@@ -63,7 +65,10 @@ let HashMapSizeMethod = try! JNI.getJavaMethod(forClass: HashMapClassname, metho
 let SetToArrayMethod = try! JNI.getJavaMethod(forClass: SetClassname, method: "toArray", sig: "()[L\(ObjectClassname);")
 let ArrayListGetMethod = try! JNI.getJavaMethod(forClass: ArrayListClassname, method: "get", sig: "(I)L\(ObjectClassname);")
 let ArrayListSizeMethod = try! JNI.getJavaMethod(forClass: ArrayListClassname, method: "size", sig: "()I")
-let ArrayListAddMethod = try! JNI.getJavaMethod(forClass: ArrayListClassname, method: "add", sig: "(Ljava/lang/Object;)Z")
+let CollectionAddMethod = try! JNI.getJavaMethod(forClass: "java/util/Collection", method: "add", sig: "(Ljava/lang/Object;)Z")
+let CollectionIteratorMethod = try! JNI.getJavaMethod(forClass: "java/util/Collection", method: "iterator", sig: "()Ljava/util/Iterator;")
+let CollectionSizeMethod = try! JNI.getJavaMethod(forClass: "java/util/Collection", method: "size", sig: "()I")
+let IteratorNextMethod = try! JNI.getJavaMethod(forClass: "java/util/Iterator", method: "next", sig: "()Ljava/lang/Object;")
 let DateGetTimeMethod = try! JNI.getJavaMethod(forClass: "java/util/Date", method: "getTime", sig:"()J")
 let VMDebugDumpReferenceTablesMethod = JNI.api.GetStaticMethodID(JNI.env, VMDebugClass, "dumpReferenceTables", "()V")
 

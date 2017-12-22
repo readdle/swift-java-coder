@@ -376,7 +376,7 @@ fileprivate class JavaArrayContainer : UnkeyedEncodingContainer {
     
     public func encode<T : Encodable>(_ value: T) throws {
         let storeObject = try self.encoder.box(value)
-        let rewrite = JNI.CallBooleanMethod(self.javaObject, methodID: ArrayListAddMethod, args: [jvalue(l: storeObject.javaObject)])
+        let rewrite = JNI.CallBooleanMethod(self.javaObject, methodID: CollectionAddMethod, args: [jvalue(l: storeObject.javaObject)])
         assert(rewrite == JNI.TRUE, "ArrayList should always return true from add()")
         count += 1
     }
@@ -643,6 +643,10 @@ extension JavaEncoder {
             }
             else if value is [Encodable] {
                 fullClassName = ArrayListClassname
+                storageType = .array
+            }
+            else if value is Set<AnyHashable> {
+                fullClassName = HashSetClassname
                 storageType = .array
             }
             else {
