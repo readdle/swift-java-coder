@@ -26,9 +26,7 @@ public class JavaDecoder: Decoder {
     
     public func decode<T : Decodable>(_ type: T.Type, from javaObject: jobject) throws -> T {
         do {
-            let rootStorageType = getJavaClassname(from: javaObject)
-            self.storage.append(JNIStorageObject(type: rootStorageType, javaObject: JNI.api.NewLocalRef(JNI.env, javaObject)!))
-            let value = try T(from: self)
+            let value = try unbox(type: type, javaObject: javaObject)
             assert(self.storage.count == 0, "Missing decoding for \(self.storage.count) objects")
             return value
         }
