@@ -605,55 +605,9 @@ fileprivate class JavaAnyCodableContainer<K : CodingKey> : KeyedDecodingContaine
 extension JavaDecoder {
     
     fileprivate func unbox<T: Decodable>(type: T.Type, javaObject: jobject) throws -> T {
-        if type == Int.self {
-            return Int(JNI.CallIntMethod(javaObject, methodID: NumberIntValueMethod)) as! T
-        }
-        else if type == Int8.self {
-            return JNI.CallByteMethod(javaObject, methodID: NumberByteValueMethod) as! T
-        }
-        else if type == Int16.self {
-            return JNI.CallShortMethod(javaObject, methodID: NumberShortValueMethod) as! T
-        }
-        else if type == Int32.self {
-            return Int32(JNI.CallIntMethod(javaObject, methodID: NumberIntValueMethod)) as! T
-        }
-        else if type == Int64.self {
-            return JNI.CallLongMethod(javaObject, methodID: NumberLongValueMethod) as! T
-        }
-        else if type == UInt.self {
-            return UInt(JNI.CallLongMethod(javaObject, methodID: NumberLongValueMethod)) as! T
-        }
-        else if type == UInt8.self {
-            return UInt8(JNI.CallShortMethod(javaObject, methodID: NumberShortValueMethod)) as! T
-        }
-        else if type == UInt16.self {
-            return UInt16(JNI.CallIntMethod(javaObject, methodID: NumberIntValueMethod)) as! T
-        }
-        else if type == UInt32.self {
-            return UInt32(JNI.CallLongMethod(javaObject, methodID: NumberLongValueMethod)) as! T
-        }
-        else if type == UInt64.self {
-            let javaString = JNI.CallObjectMethod(javaObject, methodID: ObjectToStringMethod)
-            defer {
-                JNI.api.DeleteLocalRef(JNI.env, javaString)
-            }
-            let stringRepresentation = String(javaObject: javaString)
-            return UInt64(stringRepresentation) as! T
-        }
-        else if type == Bool.self {
-            return (JNI.CallBooleanMethod(javaObject, methodID: NumberBooleanValueMethod) == JNI.TRUE) as! T
-        }
-        else if type == String.self {
-            return  String(javaObject: javaObject) as! T
-        }
-        else if type == Date.self {
-            let timeInterval = JNI.api.CallLongMethodA(JNI.env, javaObject, DateGetTimeMethod, nil)
-            // Java save TimeInterval in UInt64 milliseconds
-            return Date(timeIntervalSince1970: TimeInterval(timeInterval) / 1000.0) as! T
-        }
-        else if type == URL.self {
-            let pathString = JNI.api.CallObjectMethodA(JNI.env, javaObject, ObjectToStringMethod, nil)
-            return URL(string: String(javaObject: pathString)) as! T
+        let typeName = String(reflecting: type)
+        if let decodableClosure = JavaCoderConfig.decodableClosures[typeName] {
+            return try decodableClosure(javaObject) as! T
         }
         else if type == AnyCodable.self {
             let cls = JNI.api.GetObjectClass(JNI.env, javaObject)
@@ -699,47 +653,9 @@ extension JavaDecoder {
     }
     
     fileprivate func getJavaClassname<T>(forType: T.Type) -> String {
-        if T.self == Int.self {
-            return IntegerClassname
-        }
-        else if T.self == Int8.self {
-            return ByteClassname
-        }
-        else if T.self == Int16.self {
-            return ShortClassname
-        }
-        else if T.self == Int32.self {
-            return IntegerClassname
-        }
-        else if T.self == Int64.self {
-            return LongClassname
-        }
-        else if T.self == UInt.self {
-            return LongClassname
-        }
-        else if T.self == UInt8.self {
-            return ShortClassname
-        }
-        else if T.self == UInt16.self {
-            return IntegerClassname
-        }
-        else if T.self == UInt32.self {
-            return LongClassname
-        }
-        else if T.self == UInt64.self {
-            return BigIntegerClassname
-        }
-        else if T.self == Bool.self {
-            return BooleanClassname
-        }
-        else if T.self == String.self {
-            return StringClassname
-        }
-        else if T.self == Date.self {
-            return DateClassname
-        }
-        else if T.self == URL.self {
-            return UriClassname
+        let typeName = String(reflecting: forType)
+        if let className = JavaCoderConfig.codableClassNames[typeName] {
+            return className
         }
         else if "\(forType)".starts(with: "Array<") {
             return ArrayListClassname

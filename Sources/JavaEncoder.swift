@@ -513,94 +513,10 @@ extension JavaEncoder {
     
     fileprivate func box<T: Encodable>(_ value: T) throws -> JNIStorageObject {
         let storage: JNIStorageObject
-        
-        if T.self == Int.self {
-            let valueInt = value as! Int
-            // jint for macOS and Android defferent, that's why we make cast to jint() here
-            let args = [jvalue(i: jint(valueInt))]
-            let javaObject = JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)
-            storage = JNIStorageObject.init(type: .object(className: IntegerClassname), javaObject: javaObject!)
-        }
-        else if T.self == Int8.self {
-            let valueInt8 = value as! Int8
-            let args = [jvalue(b: valueInt8)]
-            let javaObject = JNI.NewObject(ByteClass, methodID: ByteConstructor, args: args)
-            storage = JNIStorageObject.init(type: .object(className: ByteClassname), javaObject: javaObject!)
-        }
-        else if T.self == Int16.self {
-            let valueInt16 = value as! Int16
-            let args = [jvalue(s: valueInt16)]
-            let javaObject = JNI.NewObject(ShortClass, methodID: ShortConstructor, args: args)
-            storage = JNIStorageObject.init(type: .object(className: ShortClassname), javaObject: javaObject!)
-        }
-        else if T.self == Int32.self {
-            let valueInt32 = value as! Int32
-            let args = [jvalue(i: jint(valueInt32))]
-            let javaObject = JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)
-            storage = JNIStorageObject.init(type: .object(className: IntegerClassname), javaObject: javaObject!)
-        }
-        else if T.self == Int64.self {
-            let valueInt64 = value as! Int64
-            let args = [jvalue(j: valueInt64)]
-            let javaObject = JNI.NewObject(LongClass, methodID: LongConstructor, args: args)
-            storage = JNIStorageObject.init(type: .object(className: LongClassname), javaObject: javaObject!)
-        }
-        else if T.self == UInt.self {
-            let valueUInt = value as! UInt
-            let args = [jvalue(j:  Int64(valueUInt))]
-            let javaObject = JNI.NewObject(LongClass, methodID: LongConstructor, args: args)
-            storage = JNIStorageObject.init(type: .object(className: LongClassname), javaObject: javaObject!)
-        }
-        else if T.self == UInt8.self {
-            let valueUInt8 = value as! UInt8
-            let args = [jvalue(s: Int16(valueUInt8))]
-            let javaObject = JNI.NewObject(ShortClass, methodID: ShortConstructor, args: args)
-            storage = JNIStorageObject.init(type: .object(className: ShortClassname), javaObject: javaObject!)
-        }
-        else if T.self == UInt16.self {
-            let valueUInt16 = value as! UInt16
-            let args = [jvalue(i: jint(valueUInt16))]
-            let javaObject = JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)
-            storage = JNIStorageObject.init(type: .object(className: IntegerClassname), javaObject: javaObject!)
-        }
-        else if T.self == UInt32.self {
-            let valueUInt32 = value as! UInt32
-            let args = [jvalue(j: Int64(valueUInt32))]
-            let javaObject = JNI.NewObject(LongClass, methodID: LongConstructor, args: args)
-            storage = JNIStorageObject.init(type: .object(className: LongClassname), javaObject: javaObject!)
-        }
-        else if T.self == UInt64.self {
-            let valueInt64 = value as! UInt64
-            var locals = [jobject]()
-            let args = [jvalue(l: String(valueInt64).localJavaObject(&locals))]
-            let javaObject = JNI.check(JNI.NewObject(BigIntegerClass, methodID: BigIntegerConstructor, args: args), &locals)
-            storage = JNIStorageObject.init(type: .object(className: BigIntegerClassname), javaObject: javaObject!)
-        }
-        else if T.self == Bool.self {
-            let valueBool = value as! Bool
-            let args = [jvalue(z: valueBool ? JNI.TRUE : JNI.FALSE)]
-            let javaObject = JNI.NewObject(BooleanClass, methodID: BooleanConstructor, args: args)
-            storage = JNIStorageObject.init(type: .object(className: BooleanClassname), javaObject: javaObject!)
-        }
-        else if T.self == String.self {
-            let valueString = value as! String
-            var locals = [jobject]()
-            let javaObject = valueString.localJavaObject(&locals)
-            // Locals ignored because JNIStorageObject take ownership of LocalReference
-            storage = JNIStorageObject.init(type: .object(className: StringClassname), javaObject: javaObject!)
-        }
-        else if T.self == Date.self {
-            let valueDate = value as! Date
-            let args = [jvalue(j: jlong(valueDate.timeIntervalSince1970 * 1000))]
-            let dateObject = JNI.NewObject(DateClass, methodID: DateConstructor, args: args)
-            storage = JNIStorageObject.init(type: .object(className: DateClassname), javaObject: dateObject!)
-        }
-        else if T.self == URL.self {
-            var locals = [jobject]()
-            let javaString = (value as! URL).absoluteString.localJavaObject(&locals)
-            let args = [jvalue(l: javaString)]
-            let uriObject = JNI.check(JNI.CallStaticObjectMethod(UriClass, methodID: UriConstructor!, args: args), &locals)
-            storage = JNIStorageObject.init(type: .object(className: UriClassname), javaObject: uriObject!)
+        let typeName = String(reflecting: type(of: value))
+        if let encodableClosure = JavaCoderConfig.encodableClosures[typeName] {
+            let javaObject = try encodableClosure(value)
+            storage = JNIStorageObject(type: .object(className: JavaCoderConfig.codableClassNames[typeName]!), javaObject: javaObject)
         }
         else if T.self == AnyCodable.self {
             let anyCodableValue = value as! AnyCodable
