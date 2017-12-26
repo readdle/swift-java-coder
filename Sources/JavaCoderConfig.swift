@@ -5,8 +5,8 @@
 import Foundation
 import java_swift
 
-public typealias JavaDecodableClosure = (jobject) throws -> Decodable
 public typealias JavaEncodableClosure = (Encodable) throws -> jobject
+public typealias JavaDecodableClosure = (jobject) throws -> Decodable
 
 public struct JavaCoderConfig {
 
@@ -24,7 +24,7 @@ public struct JavaCoderConfig {
         defer {
             closuresLock.unlock()
         }
-        let typeName = String(reflecting: type)
+        let typeName = String(describing: type)
         NSLog("JavaCoderConfig register: \(typeName)")
         codableClassNames[typeName] = javaClassname
         encodableClosures[typeName] = encodableClosure

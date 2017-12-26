@@ -605,7 +605,7 @@ fileprivate class JavaAnyCodableContainer<K : CodingKey> : KeyedDecodingContaine
 extension JavaDecoder {
     
     fileprivate func unbox<T: Decodable>(type: T.Type, javaObject: jobject) throws -> T {
-        let typeName = String(reflecting: type)
+        let typeName = String(describing: type)
         if let decodableClosure = JavaCoderConfig.decodableClosures[typeName] {
             return try decodableClosure(javaObject) as! T
         }
@@ -653,7 +653,7 @@ extension JavaDecoder {
     }
     
     fileprivate func getJavaClassname<T>(forType: T.Type) -> String {
-        let typeName = String(reflecting: forType)
+        let typeName = String(describing: forType)
         if let className = JavaCoderConfig.codableClassNames[typeName] {
             return className
         }

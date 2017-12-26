@@ -513,7 +513,7 @@ extension JavaEncoder {
     
     fileprivate func box<T: Encodable>(_ value: T) throws -> JNIStorageObject {
         let storage: JNIStorageObject
-        let typeName = String(reflecting: type(of: value))
+        let typeName = String(describing: type(of: value))
         if let encodableClosure = JavaCoderConfig.encodableClosures[typeName] {
             let javaObject = try encodableClosure(value)
             storage = JNIStorageObject(type: .object(className: JavaCoderConfig.codableClassNames[typeName]!), javaObject: javaObject)
@@ -529,6 +529,10 @@ extension JavaEncoder {
             else if anyCodableValue.typeName == AnyCodable.ArrayTypeName {
                 fullClassName = ArrayListClassname
                 storageType = .anyCodable(codable: .array)
+            }
+            else if let javaClassname = JavaCoderConfig.codableClassNames[anyCodableValue.typeName] {
+                fullClassName = javaClassname
+                storageType = .anyCodable(codable: .object(className: fullClassName))
             }
             else {
                 fullClassName = package  + "/" + anyCodableValue.typeName
