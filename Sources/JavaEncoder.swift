@@ -520,32 +520,35 @@ extension JavaEncoder {
         }
         else if T.self == AnyCodable.self {
             let anyCodableValue = value as! AnyCodable
-            let storageType: JNIStorageType
-            let fullClassName: String
-            if anyCodableValue.typeName == AnyCodable.DictionaryTypeName {
-                fullClassName = HashMapClassname
-                storageType = .anyCodable(codable: .dictionary)
-            }
-            else if anyCodableValue.typeName == AnyCodable.ArrayTypeName {
-                fullClassName = ArrayListClassname
-                storageType = .anyCodable(codable: .array)
-            }
-            else if let javaClassname = JavaCoderConfig.codableClassNames[anyCodableValue.typeName] {
-                fullClassName = javaClassname
-                storageType = .anyCodable(codable: .object(className: fullClassName))
+            if let javaClassname = JavaCoderConfig.codableClassNames[anyCodableValue.typeName] {
+                let encodableClosure = JavaCoderConfig.encodableClosures[anyCodableValue.typeName]!
+                let javaObject = try encodableClosure(anyCodableValue.value)
+                storage = JNIStorageObject(type: .object(className: javaClassname), javaObject: javaObject)
             }
             else {
-                fullClassName = package  + "/" + anyCodableValue.typeName
-                storageType = .anyCodable(codable: .object(className: fullClassName))
+                let storageType: JNIStorageType
+                let fullClassName: String
+                if anyCodableValue.typeName == AnyCodable.DictionaryTypeName {
+                    fullClassName = HashMapClassname
+                    storageType = .anyCodable(codable: .dictionary)
+                }
+                else if anyCodableValue.typeName == AnyCodable.ArrayTypeName {
+                    fullClassName = ArrayListClassname
+                    storageType = .anyCodable(codable: .array)
+                }
+                else {
+                    fullClassName = package  + "/" + anyCodableValue.typeName
+                    storageType = .anyCodable(codable: .object(className: fullClassName))
+                }
+                let javaClass = try JNI.getJavaClass(fullClassName)
+                let emptyConstructor = try JNI.getJavaEmptyConstructor(forClass: fullClassName)
+                guard let javaObject = JNI.api.NewObjectA(JNI.env, javaClass, emptyConstructor, nil) else {
+                    throw JavaCodingError.cantCreateObject(fullClassName)
+                }
+                storage = JNIStorageObject(type: storageType, javaObject: javaObject)
+                javaObjects.append(storage)
+                try anyCodableValue.encode(to: self)
             }
-            let javaClass = try JNI.getJavaClass(fullClassName)
-            let emptyConstructor = try JNI.getJavaEmptyConstructor(forClass: fullClassName)
-            guard let javaObject = JNI.api.NewObjectA(JNI.env, javaClass, emptyConstructor, nil) else {
-                throw JavaCodingError.cantCreateObject(fullClassName)
-            }
-            storage = JNIStorageObject(type: storageType, javaObject: javaObject)
-            javaObjects.append(storage)
-            try anyCodableValue.encode(to: self)
         }
         else if Mirror(reflecting: value).displayStyle == .enum {
             let fullClassName = package  + "/" + String(describing: type(of: value))
