@@ -560,8 +560,16 @@ fileprivate class JavaAnyCodableContainer<K : CodingKey> : KeyedDecodingContaine
         if key.stringValue == "typeName" {
             switch jniCodableType {
             case let .object(className):
-                let subString = className.split(separator: "/").last!
-                return String(subString) as! T
+                let typeName: String
+                // Check if classname registered in JavaCoderConfig
+                if let defaultTypeName = JavaCoderConfig.typeName(from: className) {
+                    typeName = defaultTypeName
+                }
+                // if not use ClassName as Swift type name
+                else {
+                    typeName = String(className.split(separator: "/").last!)
+                }
+                return typeName as! T
             case .array:
                 return  AnyCodable.ArrayTypeName as! T
             case .dictionary:

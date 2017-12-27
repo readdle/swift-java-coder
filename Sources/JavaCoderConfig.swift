@@ -31,6 +31,15 @@ public struct JavaCoderConfig {
         decodableClosures[typeName] = decodableClosure
     }
 
+    public static func typeName(from className: String) -> String? {
+        for (typeName, registeredClassName) in codableClassNames {
+            if registeredClassName == className {
+                return typeName
+            }
+        }
+        return nil
+    }
+
     public static func RegisterBasicJavaTypes() {
 
         RegisterType(type: Int.self, javaClassname: IntegerClassname, encodableClosure: {
