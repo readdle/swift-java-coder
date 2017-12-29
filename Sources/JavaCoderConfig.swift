@@ -4,6 +4,7 @@
 
 import Foundation
 import java_swift
+import CJavaVM
 
 public typealias JavaEncodableClosure = (Encodable) throws -> jobject
 public typealias JavaDecodableClosure = (jobject) throws -> Decodable
@@ -153,6 +154,25 @@ public struct JavaCoderConfig {
         }, decodableClosure: {
             let pathString = JNI.api.CallObjectMethodA(JNI.env, $0, ObjectToStringMethod, nil)
             return URL(string: String(javaObject: pathString))
+        })
+
+        RegisterType(type: Data.self, javaClassname: ByteBufferClassname, encodableClosure: {
+            let valueData = $0 as! Data
+            let byteArray = JNI.api.NewByteArray(JNI.env, valueData.count)!
+            valueData.withUnsafeBytes({ (pointer: UnsafePointer<Int8>) -> Void in
+                JNI.api.SetByteArrayRegion(JNI.env, byteArray, 0, valueData.count, pointer)
+            })
+            return JNI.CallStaticObjectMethod(ByteBufferClass, methodID: ByteBufferWrap, args: [jvalue(l: byteArray)])!
+        }, decodableClosure: {
+            let byteArray = JNI.CallObjectMethod($0, methodID: ByteBufferArray)
+            guard let pointer = JNI.api.GetByteArrayElements(JNI.env, byteArray, nil) else {
+                throw JavaCodingError.cantFindObject("ByteBuffer")
+            }
+            let length = JNI.api.GetArrayLength(JNI.env, byteArray)
+            defer {
+                JNI.api.ReleaseByteArrayElements(JNI.env, byteArray, pointer, 0)
+            }
+            return Data.init(bytes: pointer, count: length)
         })
     }
 

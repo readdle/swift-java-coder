@@ -16,6 +16,10 @@ public protocol JNIArgumentProtocol {
 public struct jnull: JNIArgumentProtocol {
     
     let className: String
+
+    public init() {
+        className = ""
+    }
     
     public func value(locals: UnsafeMutablePointer<[jobject]>) -> jvalue {
         return jvalue()

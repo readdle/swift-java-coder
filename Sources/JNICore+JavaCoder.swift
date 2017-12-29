@@ -24,6 +24,7 @@ let SetClassname = "java/util/Set"
 let UriClassname = "android/net/Uri"
 let DateClassname = "java/util/Date"
 let HashSetClassname = "java/util/HashSet"
+let ByteBufferClassname = "java/nio/ByteBuffer"
 
 // MARK: Java Classes
 var IntegerClass = try! JNI.getJavaClass("java/lang/Integer")
@@ -38,6 +39,7 @@ let UriClass = try! JNI.getJavaClass("android/net/Uri")
 let DateClass = try! JNI.getJavaClass("java/util/Date")
 let VMDebugClass = try! JNI.getJavaClass("dalvik/system/VMDebug")
 let HashSetClass = try! JNI.getJavaClass("java/util/HashSet")
+let ByteBufferClass = try! JNI.getJavaClass("java/nio/ByteBuffer")
 
 // MARK: Java methods
 let UriConstructor = JNI.api.GetStaticMethodID(JNI.env, UriClass, "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
@@ -71,6 +73,8 @@ let CollectionSizeMethod = try! JNI.getJavaMethod(forClass: "java/util/Collectio
 let IteratorNextMethod = try! JNI.getJavaMethod(forClass: "java/util/Iterator", method: "next", sig: "()Ljava/lang/Object;")
 let DateGetTimeMethod = try! JNI.getJavaMethod(forClass: "java/util/Date", method: "getTime", sig:"()J")
 let VMDebugDumpReferenceTablesMethod = JNI.api.GetStaticMethodID(JNI.env, VMDebugClass, "dumpReferenceTables", "()V")
+let ByteBufferArray = try! JNI.getJavaMethod(forClass: "java/nio/ByteBuffer", method: "array", sig: "()[B")
+let ByteBufferWrap = JNI.api.GetStaticMethodID(JNI.env, ByteBufferClass, "wrap", "([B)Ljava/nio/ByteBuffer;")!
 
 fileprivate extension NSLock {
     
