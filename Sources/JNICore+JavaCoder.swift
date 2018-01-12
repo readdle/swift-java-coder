@@ -25,6 +25,8 @@ let UriClassname = "android/net/Uri"
 let DateClassname = "java/util/Date"
 let HashSetClassname = "java/util/HashSet"
 let ByteBufferClassname = "java/nio/ByteBuffer"
+let FloatClassname = "java/lang/Float"
+let DoubleClassname = "java/lang/Double"
 
 // MARK: Java Classes
 var IntegerClass = try! JNI.getJavaClass("java/lang/Integer")
@@ -40,6 +42,8 @@ let DateClass = try! JNI.getJavaClass("java/util/Date")
 let VMDebugClass = try! JNI.getJavaClass("dalvik/system/VMDebug")
 let HashSetClass = try! JNI.getJavaClass("java/util/HashSet")
 let ByteBufferClass = try! JNI.getJavaClass("java/nio/ByteBuffer")
+let FloatClass = try! JNI.getJavaClass("java/lang/Float")
+let DoubleClass = try! JNI.getJavaClass("java/lang/Double")
 
 // MARK: Java methods
 let UriConstructor = JNI.api.GetStaticMethodID(JNI.env, UriClass, "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
@@ -50,6 +54,8 @@ let ShortConstructor = try! JNI.getJavaMethod(forClass: ShortClassname, method: 
 let LongConstructor = try! JNI.getJavaMethod(forClass: LongClassname, method: "<init>", sig: "(J)V")
 let BigIntegerConstructor = try! JNI.getJavaMethod(forClass: BigIntegerClassname, method: "<init>", sig: "(Ljava/lang/String;)V")
 let BooleanConstructor = try! JNI.getJavaMethod(forClass: BooleanClassname, method: "<init>", sig: "(Z)V")
+let FloatConstructor = try! JNI.getJavaMethod(forClass: FloatClassname, method: "<init>", sig: "(F)V")
+let DoubleConstructor = try! JNI.getJavaMethod(forClass: DoubleClassname, method: "<init>", sig: "(D)V")
 
 let ObjectToStringMethod = try! JNI.getJavaMethod(forClass: "java/lang/Object", method: "toString", sig: "()Ljava/lang/String;")
 let ClassGetNameMethod = try! JNI.getJavaMethod(forClass: ClassClassname, method: "getName", sig: "()L\(StringClassname);")
@@ -59,6 +65,8 @@ let NumberByteValueMethod = try! JNI.getJavaMethod(forClass: "java/lang/Number",
 let NumberShortValueMethod = try! JNI.getJavaMethod(forClass: "java/lang/Number", method: "shortValue", sig: "()S")
 let NumberIntValueMethod = try! JNI.getJavaMethod(forClass: "java/lang/Number", method: "intValue", sig: "()I")
 let NumberLongValueMethod = try! JNI.getJavaMethod(forClass: "java/lang/Number", method: "longValue", sig: "()J")
+let NumberFloatValueMethod = try! JNI.getJavaMethod(forClass: "java/lang/Number", method: "floatValue", sig: "()F")
+let NumberDoubleValueMethod = try! JNI.getJavaMethod(forClass: "java/lang/Number", method: "doubleValue", sig: "()D")
 let NumberBooleanValueMethod = try! JNI.getJavaMethod(forClass: "java/lang/Boolean", method: "booleanValue", sig: "()Z")
 let HashMapPutMethod = try! JNI.getJavaMethod(forClass: HashMapClassname, method: "put", sig: "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;")
 let HashMapGetMethod = try! JNI.getJavaMethod(forClass: HashMapClassname, method: "get", sig: "(L\(ObjectClassname);)L\(ObjectClassname);")

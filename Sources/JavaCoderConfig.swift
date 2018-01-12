@@ -120,6 +120,20 @@ public struct JavaCoderConfig {
             return UInt64(stringRepresentation)
         })
 
+        RegisterType(type: Float.self, javaClassname: FloatClassname, encodableClosure: {
+            let args = [jvalue(f: $0 as! Float)]
+            return JNI.NewObject(FloatClass, methodID: FloatConstructor, args: args)!
+        }, decodableClosure: {
+            return JNI.api.CallFloatMethodA(JNI.env, $0, NumberFloatValueMethod, nil)
+        })
+
+        RegisterType(type: Double.self, javaClassname: DoubleClassname, encodableClosure: {
+            let args = [jvalue(d: $0 as! Double)]
+            return JNI.NewObject(DoubleClass, methodID: DoubleConstructor, args: args)!
+        }, decodableClosure: {
+            return JNI.api.CallDoubleMethodA(JNI.env, $0, NumberDoubleValueMethod, nil)
+        })
+
         RegisterType(type: Bool.self, javaClassname: BooleanClassname, encodableClosure: {
             let args = [jvalue(z: $0 as! Bool ? JNI.TRUE : JNI.FALSE)]
             return JNI.NewObject(BooleanClass, methodID: BooleanConstructor, args: args)!
