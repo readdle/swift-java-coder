@@ -328,6 +328,18 @@ public extension JNICore {
     }
     
     // MARK: New API
+    public func CallObjectMethod(_ object: jobject, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jobject? {
+        return checkArgumentAndWrap(args: args, { argsPtr in
+            api.CallObjectMethodA(env, object, methodID, argsPtr)
+        })
+    }
+
+    public func CallStaticObjectMethod(_ clazz: jclass, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jobject? {
+        return checkArgumentAndWrap(args: args, { argsPtr in
+            api.CallStaticObjectMethodA(env, clazz, methodID, argsPtr)
+        })
+    }
+
     public func CallVoidMethod(_ object: jobject, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) {
         checkArgumentAndWrap(args: args, { argsPtr in
             api.CallVoidMethodA(env, object, methodID, argsPtr)
