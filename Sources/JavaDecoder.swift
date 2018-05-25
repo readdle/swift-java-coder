@@ -625,10 +625,10 @@ extension JavaDecoder {
             JNI.DeleteLocalRef(javaClassName)
             let codableType: JNIStorageType
             if className == ArrayListClassname {
-                codableType = .array
+                codableType = .array(className: ArrayListClassname)
             }
             else if className == HashSetClassname {
-                codableType = .array
+                codableType = .array(className: HashSetClassname)
             }
             else if className == HashMapClassname {
                 codableType = .dictionary
@@ -647,9 +647,9 @@ extension JavaDecoder {
             let obj = JNI.api.NewLocalRef(JNI.env, javaObject)!
             switch stringType {
             case _ where stringType.starts(with: "Array<"):
-                storageObject = JNIStorageObject(type: .array, javaObject: obj)
+                storageObject = JNIStorageObject(type: .array(className: ArrayListClassname), javaObject: obj)
             case _ where stringType.starts(with: "Set<"):
-                storageObject = JNIStorageObject(type: .array, javaObject: obj)
+                storageObject = JNIStorageObject(type: .array(className: HashSetClassname), javaObject: obj)
             case _ where stringType.starts(with: "Dictionary<"):
                 storageObject = JNIStorageObject(type: .dictionary, javaObject: obj)
             default:
@@ -687,9 +687,9 @@ extension JavaDecoder {
         JNI.DeleteLocalRef(javaClassName)
         switch className {
         case ArrayListClassname:
-            return .array
+            return .array(className: ArrayListClassname)
         case HashSetClassname:
-            return .array
+            return .array(className: HashSetClassname)
         case HashMapClassname:
             return .dictionary
         default:

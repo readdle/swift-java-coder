@@ -25,7 +25,7 @@ public enum JavaCodingError: Error {
 
 indirect enum JNIStorageType {
     case object(className: String)
-    case array
+    case array(className: String)
     case dictionary
     case anyCodable(codable: JNIStorageType)
     
@@ -33,8 +33,8 @@ indirect enum JNIStorageType {
         switch self {
         case .object(let className):
             return "L\(className);"
-        case .array:
-            return "L\(ArrayListClassname);"
+        case .array(let className):
+            return "L\(className);"
         case .dictionary:
             return "L\(HashMapClassname);"
         case .anyCodable(let codable):
@@ -534,7 +534,7 @@ extension JavaEncoder {
                 }
                 else if anyCodableValue.typeName == AnyCodable.ArrayTypeName {
                     fullClassName = ArrayListClassname
-                    storageType = .anyCodable(codable: .array)
+                    storageType = .anyCodable(codable: .array(className: fullClassName))
                 }
                 else {
                     fullClassName = package  + "/" + anyCodableValue.typeName
@@ -566,11 +566,11 @@ extension JavaEncoder {
             }
             else if value is [Encodable] {
                 fullClassName = ArrayListClassname
-                storageType = .array
+                storageType = .array(className: fullClassName)
             }
             else if value is Set<AnyHashable> {
                 fullClassName = HashSetClassname
-                storageType = .array
+                storageType = .array(className: fullClassName)
             }
             else {
                 fullClassName = package  + "/" + String(describing: type(of: value))
