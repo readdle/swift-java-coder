@@ -202,7 +202,12 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedDecodingContainerPro
                 var locals = [jobject]()
                 let cls = JNI.api.GetObjectClass(JNI.env, javaObject)!
                 let javaTypename = key.stringValue.localJavaObject(&locals)
-                let field = JNI.CallObjectMethod(cls, methodID: ClassGetFieldMethod, args: [jvalue(l: javaTypename)])!
+                guard let field = JNI.CallObjectMethod(cls, ClassGetFieldMethod, javaTypename!) else {
+                    JNI.ExceptionReset()
+                    let errorMessage = "\(javaClass).\(key.stringValue): JavaDecoder uses reflection for AnyCodable, " +
+                            "probably \(key.stringValue) field not public"
+                    throw JavaCodingError.cantFindObject(errorMessage)
+                }
                 let fieldClass = JNI.CallObjectMethod(field, methodID: FieldGetTypedMethod, args: [])!
                 let javaClassName = JNI.api.CallObjectMethodA(JNI.env, fieldClass, ClassGetNameMethod, nil)!
                 classname = String(javaObject: javaClassName).replacingOccurrences(of: ".", with: "/")
