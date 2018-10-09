@@ -536,6 +536,10 @@ extension JavaEncoder {
                     fullClassName = ArrayListClassname
                     storageType = .anyCodable(codable: .array(className: fullClassName))
                 }
+                else if anyCodableValue.typeName == AnyCodable.SetTypeName {
+                    fullClassName = HashSetClassname
+                    storageType = .anyCodable(codable: .array(className: fullClassName))
+                }
                 else {
                     fullClassName = package  + "/" + anyCodableValue.typeName
                     storageType = .anyCodable(codable: .object(className: fullClassName))
