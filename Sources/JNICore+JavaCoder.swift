@@ -316,13 +316,20 @@ public extension JNICore {
     }
     
     private func checkArgument<Result>(args: [jvalue], _ block: (_ argsPtr: UnsafePointer<jvalue>?) -> Result) -> Result {
+        var locals = [jobject]()
         if args.count > 0 {
             var args = args
             return withUnsafePointer(to: &args[0]) { argsPtr in
+                defer {
+                    _ = JNI.check(Void.self, &locals)
+                }
                 return block(argsPtr)
             }
         }
         else {
+            defer {
+                _ = JNI.check(Void.self, &locals)
+            }
             return block(nil)
         }
     }
@@ -353,8 +360,8 @@ public extension JNICore {
     }
     
     private func checkArgumentAndWrap<Result>(args: [JNIArgumentProtocol], _ block: (_ argsPtr: UnsafePointer<jvalue>?) -> Result) -> Result {
+        var locals = [jobject]()
         if args.count > 0 {
-            var locals = [jobject]()
             var argsValues = args.map({ $0.value(locals: &locals) })
             return withUnsafePointer(to: &argsValues[0]) { argsPtr in
                 defer {
@@ -364,6 +371,9 @@ public extension JNICore {
             }
         }
         else {
+            defer {
+                _ = JNI.check(Void.self, &locals)
+            }
             return block(nil)
         }
     }
