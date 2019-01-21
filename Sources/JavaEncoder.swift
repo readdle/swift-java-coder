@@ -197,7 +197,7 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedEncodingContainerPro
         }
         catch {
             if self.encoder.missingFieldsStrategy == .ignore {
-                NSLog("Ignore error: \(error)")
+                JNI.errorLogger("Ignore error: \(error)")
             }
             else {
                 throw error
@@ -472,7 +472,7 @@ fileprivate class JavaAnyCodableContainer<K : CodingKey> : KeyedEncodingContaine
         }
         catch {
             if self.encoder.missingFieldsStrategy == .ignore {
-                NSLog("Ignore error: \(error)")
+                JNI.errorLogger("Ignore error: \(error)")
             }
             else {
                 throw error

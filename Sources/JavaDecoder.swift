@@ -120,7 +120,7 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedDecodingContainerPro
         }
         catch {
             if self.decoder.missingFieldsStrategy == .ignore {
-                NSLog("Ignore error: \(error)")
+                JNI.errorLogger("Ignore error: \(error)")
                 return defaultValue
             }
             else {
