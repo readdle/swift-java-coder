@@ -11,8 +11,8 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/readdle/java_swift.git", .exact("2.1.3")),
-        .package(url: "https://github.com/readdle/swift-anycodable.git", .upToNextMinor(from: "1.0.2")),
+        .package(url: "https://github.com/readdle/java_swift.git", .upToNextMinor(from: "2.1.4")),
+        .package(url: "https://github.com/readdle/swift-anycodable.git", .upToNextMinor(from: "1.0.5")),
     ],
     targets: [
         .target(name: "JavaCoder", dependencies: ["java_swift", "AnyCodable"], path: "Sources"),
