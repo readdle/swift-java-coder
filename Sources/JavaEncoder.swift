@@ -522,7 +522,7 @@ extension JavaEncoder {
             let anyCodableValue = value as! AnyCodable
             if let javaClassname = JavaCoderConfig.codableClassNames[anyCodableValue.typeName] {
                 let encodableClosure = JavaCoderConfig.encodableClosures[anyCodableValue.typeName]!
-                let javaObject = try encodableClosure(anyCodableValue.value as! Encodable)
+                let javaObject = try encodableClosure(anyCodableValue.value)
                 storage = JNIStorageObject(type: .object(className: javaClassname), javaObject: javaObject)
             }
             else {

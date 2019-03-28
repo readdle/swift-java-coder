@@ -6,7 +6,7 @@ import Foundation
 import java_swift
 import CJavaVM
 
-public typealias JavaEncodableClosure = (Encodable) throws -> jobject
+public typealias JavaEncodableClosure = (Any) throws -> jobject
 public typealias JavaDecodableClosure = (jobject) throws -> Decodable
 
 public struct JavaCoderConfig {
