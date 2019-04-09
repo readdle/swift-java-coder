@@ -419,6 +419,10 @@ class JavaEnumValueEncodingContainer: SingleValueEncodingContainer {
         // If jniStorage.javaObject == nil its enum, else optionSet
         if jniStorage.javaObject == nil {
             let valueOfMethodID = try JNI.getStaticJavaMethod(forClass: javaClass, method: "valueOf", sig: "(\(rawValue.type.sig))L\(javaClass);")
+            JNI.SaveFatalErrorMessage("\(javaClass) valueOf \(rawValue.type.sig)")
+            defer {
+                JNI.RemoveFatalErrorMessage()
+            }
             guard let javaObject = JNI.CallStaticObjectMethod(clazz, methodID: valueOfMethodID, args: [jvalue(l: rawValue.javaObject)]) else {
                 throw JavaCodingError.nilNotSupported("\(javaClass).valueOf()")
             }
