@@ -45,7 +45,13 @@ indirect enum JNIStorageType {
 
 class JNIStorageObject {
     let type: JNIStorageType
-    var javaObject: jobject!
+    var javaObject: jobject! {
+        didSet {
+            if let value = oldValue {
+                JNI.api.DeleteLocalRef(JNI.env, value)
+            }
+        }
+    }
     
     init(type: JNIStorageType, javaObject: jobject) {
         self.type = type
@@ -57,7 +63,9 @@ class JNIStorageObject {
     }
     
     deinit {
-        JNI.api.DeleteLocalRef(JNI.env, javaObject)
+        if let value = javaObject {
+            JNI.api.DeleteLocalRef(JNI.env, value)
+        }
     }
 }
 
