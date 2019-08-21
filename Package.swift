@@ -17,5 +17,5 @@ let package = Package(
     targets: [
         .target(name: "JavaCoder", dependencies: ["java_swift", "AnyCodable"], path: "Sources"),
     ],
-    swiftLanguageVersions: [4]
+    swiftLanguageVersions: [5, 4]
 )
