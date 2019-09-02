@@ -136,9 +136,6 @@ public extension JNICore {
     
     // MARK: Global cache functions
     public func getJavaClass(_ className: String) throws -> jclass {
-        if let javaClass = javaClasses[className] {
-            return javaClass
-        }
         return try javaClassesLock.sync {
             if let javaClass = javaClasses[className] {
                 return javaClass
@@ -160,9 +157,6 @@ public extension JNICore {
     public func getJavaMethod(forClass className: String, method: String, sig: String) throws -> jmethodID {
         let key = "\(className).\(method)\(sig)"
         let javaClass = try getJavaClass(className)
-        if let methodID = javaMethods[key] {
-            return methodID
-        }
         return try javaMethodLock.sync {
             if let methodID = javaMethods[key] {
                 return methodID
@@ -180,9 +174,6 @@ public extension JNICore {
     public func getStaticJavaMethod(forClass className: String, method: String, sig: String) throws -> jmethodID {
         let key = "\(className).\(method)\(sig)"
         let javaClass = try getJavaClass(className)
-        if let methodID = javaStaticMethods[key] {
-            return methodID
-        }
         return try javaStaticMethodLock.sync {
             if let methodID = javaStaticMethods[key] {
                 return methodID
@@ -200,9 +191,6 @@ public extension JNICore {
     public func getJavaField(forClass className: String, field: String, sig: String) throws -> jfieldID {
         let key = "\(className).\(field)\(sig)"
         let javaClass = try getJavaClass(className)
-        if let fieldID = javaFields[key] {
-            return fieldID
-        }
         return try javaFieldLock.sync({
             if let fieldID = javaFields[key] {
                 return fieldID
