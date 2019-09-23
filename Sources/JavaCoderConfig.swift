@@ -195,6 +195,9 @@ public struct JavaCoderConfig {
             return JNI.CallStaticObjectMethod(ByteBufferClass, methodID: ByteBufferWrap, args: [jvalue(l: byteArray)])!
         }, decodableClosure: {
             let byteArray = JNI.CallObjectMethod($0, methodID: ByteBufferArray)
+            defer {
+                JNI.api.DeleteLocalRef(JNI.env, byteArray)
+            }
             guard let pointer = JNI.api.GetByteArrayElements(JNI.env, byteArray, nil) else {
                 throw JavaCodingError.cantFindObject("ByteBuffer")
             }
