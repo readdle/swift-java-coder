@@ -26,31 +26,31 @@ public class JNIObjectWithClass: JNIObject {
 
 public extension JNIObject {
     
-    public static func getJavaClassname(javaObject: jobject?) -> String {
+    static func getJavaClassname(javaObject: jobject?) -> String {
         let cls = JNI.api.GetObjectClass(JNI.env, javaObject)
         let javaClassName = JNI.api.CallObjectMethodA(JNI.env, cls, ClassGetNameMethod, nil)
         return String(javaObject: javaClassName).replacingOccurrences(of: ".", with: "/")
     }
     
-    public var className: String {
+    var className: String {
         if let jniObject = self as? JNIObjectWithClass {
             return jniObject.privateClassName
         }
         return JNIObject.getJavaClassname(javaObject: self.javaObject)
     }
 
-    public func callVoidMethod(_ methodID: jmethodID, _ args: JNIArgumentProtocol...) {
+    func callVoidMethod(_ methodID: jmethodID, _ args: JNIArgumentProtocol...) {
         checkArgumentAndWrap(args: args, { argsPtr in
             JNI.api.CallVoidMethodA(JNI.env, javaObject, methodID, argsPtr)
         })
     }
     
-    public func callStringMethod(method: String? = nil, functionName: String = #function, _ args: JNIArgumentProtocol...) -> String {
+    func callStringMethod(method: String? = nil, functionName: String = #function, _ args: JNIArgumentProtocol...) -> String {
         let methodName = method ?? String(functionName.split(separator: "(")[0])
         return String(javaObject: self.internalcallObjectMethod(method: methodName, returnType: "Ljava/lang/String;", args))
     }
     
-    public func callObjectMethod(method: String? = nil, functionName: String = #function, returnType: String, _ args: JNIArgumentProtocol...) -> jobject? {
+    func callObjectMethod(method: String? = nil, functionName: String = #function, returnType: String, _ args: JNIArgumentProtocol...) -> jobject? {
         let methodName = method ?? String(functionName.split(separator: "(")[0])
         return self.internalcallObjectMethod(method: methodName, returnType: returnType, args)
     }

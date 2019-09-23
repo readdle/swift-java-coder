@@ -181,8 +181,12 @@ public struct JavaCoderConfig {
                 throw EncodingError.invalidValue($0, EncodingError.Context(codingPath: [],
                         debugDescription: "Can't create NewByteArray \(valueData.count)"))
             }
-            valueData.withUnsafeBytes({ (pointer: UnsafePointer<Int8>) -> Void in
-                JNI.api.SetByteArrayRegion(JNI.env, byteArray, 0, jint(valueData.count), pointer)
+            try valueData.withUnsafeBytes({ pointer in
+                guard let bytes = pointer.baseAddress?.assumingMemoryBound(to: Int8.self) else {
+                    throw EncodingError.invalidValue(valueData, EncodingError.Context(codingPath: [],
+                            debugDescription: "Can't get unsafeBytes \(valueData.count)"))
+                }
+                JNI.api.SetByteArrayRegion(JNI.env, byteArray, 0, jint(valueData.count), bytes)
             })
             if let throwable = JNI.ExceptionCheck() {
                 throw EncodingError.invalidValue($0, EncodingError.Context(codingPath: [],

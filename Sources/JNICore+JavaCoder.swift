@@ -107,15 +107,15 @@ fileprivate let javaFieldLock = NSLock()
 
 public extension JNICore {
     
-    public var TRUE: jboolean {
+    var TRUE: jboolean {
         return jboolean(JNI_TRUE)
     }
     
-    public var FALSE: jboolean {
+    var FALSE: jboolean {
         return jboolean(JNI_FALSE)
     }
     
-    public enum JNIError: Error {
+    enum JNIError: Error {
         
         case classNotFoundException(String)
         case methodNotFoundException(String)
@@ -135,7 +135,7 @@ public extension JNICore {
     }
     
     // MARK: Global cache functions
-    public func getJavaClass(_ className: String) throws -> jclass {
+    func getJavaClass(_ className: String) throws -> jclass {
         return try javaClassesLock.sync {
             if let javaClass = javaClasses[className] {
                 return javaClass
@@ -150,11 +150,11 @@ public extension JNICore {
         }
     }
     
-    public func getJavaEmptyConstructor(forClass className: String) throws -> jmethodID {
+    func getJavaEmptyConstructor(forClass className: String) throws -> jmethodID {
         return try getJavaMethod(forClass: className, method: "<init>", sig: "()V")
     }
     
-    public func getJavaMethod(forClass className: String, method: String, sig: String) throws -> jmethodID {
+    func getJavaMethod(forClass className: String, method: String, sig: String) throws -> jmethodID {
         let key = "\(className).\(method)\(sig)"
         let javaClass = try getJavaClass(className)
         return try javaMethodLock.sync {
@@ -171,7 +171,7 @@ public extension JNICore {
         }
     }
     
-    public func getStaticJavaMethod(forClass className: String, method: String, sig: String) throws -> jmethodID {
+    func getStaticJavaMethod(forClass className: String, method: String, sig: String) throws -> jmethodID {
         let key = "\(className).\(method)\(sig)"
         let javaClass = try getJavaClass(className)
         return try javaStaticMethodLock.sync {
@@ -188,7 +188,7 @@ public extension JNICore {
         }
     }
     
-    public func getJavaField(forClass className: String, field: String, sig: String) throws -> jfieldID {
+    func getJavaField(forClass className: String, field: String, sig: String) throws -> jfieldID {
         let key = "\(className).\(field)\(sig)"
         let javaClass = try getJavaClass(className)
         return try javaFieldLock.sync({
@@ -206,7 +206,7 @@ public extension JNICore {
         })
     }
     
-    public func GlobalFindClass( _ name: UnsafePointer<Int8>,
+    func GlobalFindClass( _ name: UnsafePointer<Int8>,
                                _ file: StaticString = #file, _ line: Int = #line ) -> jclass? {
         guard let clazz: jclass = FindClass(name, file, line ) else {
             return nil
@@ -217,87 +217,87 @@ public extension JNICore {
     }
     
     // MARK: Constructors
-    public func NewObject(_ clazz: jclass, methodID: jmethodID, args: [jvalue] = []) -> jobject? {
+    func NewObject(_ clazz: jclass, methodID: jmethodID, args: [jvalue] = []) -> jobject? {
         return checkArgument(args: args, { argsPtr in
             api.NewObjectA(env, clazz, methodID, argsPtr)
         })
     }
     
     // MARK: Object methods
-    public func CallBooleanMethod(_ object: jobject, methodID: jmethodID, args: [jvalue] = []) -> jboolean {
+    func CallBooleanMethod(_ object: jobject, methodID: jmethodID, args: [jvalue] = []) -> jboolean {
         return checkArgument(args: args, { argsPtr in
             api.CallBooleanMethodA(env, object, methodID, argsPtr)
         })
     }
     
-    public func CallByteMethod(_ object: jobject, methodID: jmethodID, args: [jvalue] = []) -> jbyte {
+    func CallByteMethod(_ object: jobject, methodID: jmethodID, args: [jvalue] = []) -> jbyte {
         return checkArgument(args: args, { argsPtr in
             api.CallByteMethodA(env, object, methodID, argsPtr)
         })
     }
     
-    public func CallShortMethod(_ object: jobject, methodID: jmethodID, args: [jvalue] = []) -> jshort {
+    func CallShortMethod(_ object: jobject, methodID: jmethodID, args: [jvalue] = []) -> jshort {
         return checkArgument(args: args, { argsPtr in
             api.CallShortMethodA(env, object, methodID, argsPtr)
         })
     }
     
-    public func CallIntMethod(_ object: jobject, methodID: jmethodID, args: [jvalue] = []) -> jint {
+    func CallIntMethod(_ object: jobject, methodID: jmethodID, args: [jvalue] = []) -> jint {
         return checkArgument(args: args, { argsPtr in
             api.CallIntMethodA(env, object, methodID, argsPtr)
         })
     }
     
-    public func CallLongMethod(_ object: jobject, methodID: jmethodID, args: [jvalue] = []) -> jlong {
+    func CallLongMethod(_ object: jobject, methodID: jmethodID, args: [jvalue] = []) -> jlong {
         return checkArgument(args: args, { argsPtr in
             api.CallLongMethodA(env, object, methodID, argsPtr)
         })
     }
     
-    public func CallObjectMethod(_ object: jobject, methodID: jmethodID, args: [jvalue] = []) -> jobject? {
+    func CallObjectMethod(_ object: jobject, methodID: jmethodID, args: [jvalue] = []) -> jobject? {
         return checkArgument(args: args, { argsPtr in
             api.CallObjectMethodA(env, object, methodID, argsPtr)
         })
     }
     
     // MARK: Static methods
-    public func CallStaticBooleanMethod(_ clazz: jclass, methodID: jmethodID, args: [jvalue] = []) -> jboolean {
+    func CallStaticBooleanMethod(_ clazz: jclass, methodID: jmethodID, args: [jvalue] = []) -> jboolean {
         return checkArgument(args: args, { argsPtr in
             api.CallStaticBooleanMethodA(env, clazz, methodID, argsPtr)
         })
     }
     
-    public func CallStaticByteMethod(_ clazz: jclass, methodID: jmethodID, args: [jvalue] = []) -> jbyte {
+    func CallStaticByteMethod(_ clazz: jclass, methodID: jmethodID, args: [jvalue] = []) -> jbyte {
         return checkArgument(args: args, { argsPtr in
             api.CallStaticByteMethodA(env, clazz, methodID, argsPtr)
         })
     }
     
-    public func CallStaticShortMethod(_ clazz: jclass, methodID: jmethodID, args: [jvalue] = []) -> jshort {
+    func CallStaticShortMethod(_ clazz: jclass, methodID: jmethodID, args: [jvalue] = []) -> jshort {
         return checkArgument(args: args, { argsPtr in
             api.CallStaticShortMethodA(env, clazz, methodID, argsPtr)
         })
     }
     
-    public func CallStaticIntMethod(_ clazz: jclass, methodID: jmethodID, args: [jvalue] = []) -> jint {
+    func CallStaticIntMethod(_ clazz: jclass, methodID: jmethodID, args: [jvalue] = []) -> jint {
         return checkArgument(args: args, { argsPtr in
             api.CallStaticIntMethodA(env, clazz, methodID, argsPtr)
         })
     }
     
-    public func CallStaticLongMethod(_ clazz: jclass, methodID: jmethodID, args: [jvalue] = []) -> jlong {
+    func CallStaticLongMethod(_ clazz: jclass, methodID: jmethodID, args: [jvalue] = []) -> jlong {
         return checkArgument(args: args, { argsPtr in
             api.CallStaticLongMethodA(env, clazz, methodID, argsPtr)
         })
     }
     
-    public func CallStaticObjectMethod(_ clazz: jclass, methodID: jmethodID, args: [jvalue] = []) -> jobject? {
+    func CallStaticObjectMethod(_ clazz: jclass, methodID: jmethodID, args: [jvalue] = []) -> jobject? {
         return checkArgument(args: args, { argsPtr in
             api.CallStaticObjectMethodA(env, clazz, methodID, argsPtr)
         })
     }
     
-    public func dumpReferenceTables() {
+    func dumpReferenceTables() {
         JNI.api.CallStaticVoidMethodA(JNI.env, VMDebugClass, VMDebugDumpReferenceTablesMethod, nil)
         JNI.api.ExceptionClear(JNI.env)
         JNI.ExceptionReset()
@@ -323,25 +323,25 @@ public extension JNICore {
     }
     
     // MARK: New API
-    public func CallObjectMethod(_ object: jobject, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jobject? {
+    func CallObjectMethod(_ object: jobject, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jobject? {
         return checkArgumentAndWrap(args: args, { argsPtr in
             api.CallObjectMethodA(env, object, methodID, argsPtr)
         })
     }
 
-    public func CallStaticObjectMethod(_ clazz: jclass, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jobject? {
+    func CallStaticObjectMethod(_ clazz: jclass, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jobject? {
         return checkArgumentAndWrap(args: args, { argsPtr in
             api.CallStaticObjectMethodA(env, clazz, methodID, argsPtr)
         })
     }
 
-    public func CallVoidMethod(_ object: jobject, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) {
+    func CallVoidMethod(_ object: jobject, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) {
         checkArgumentAndWrap(args: args, { argsPtr in
             api.CallVoidMethodA(env, object, methodID, argsPtr)
         })
     }
     
-    public func CallStaticVoidMethod(_ clazz: jclass, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) {
+    func CallStaticVoidMethod(_ clazz: jclass, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) {
         checkArgumentAndWrap(args: args, { argsPtr in
             api.CallStaticVoidMethodA(env, clazz, methodID, argsPtr)
         })
