@@ -128,13 +128,99 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedDecodingContainerPro
             }
         }
     }
-    
+
+    // MARK: Decode JNI primitive fields
+    private func decodeBoolean(forKey key: String) throws -> Bool {
+        let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "Z")
+        return JNI.api.GetBooleanField(JNI.env, javaObject, fieldID) == JNI_TRUE
+    }
+
+    private func decodeByte(forKey key: String) throws -> Int8 {
+        let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "B")
+        return JNI.api.GetByteField(JNI.env, javaObject, fieldID)
+    }
+
+    private func decodeShort(forKey key: String) throws -> Int16 {
+        let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "S")
+        return JNI.api.GetShortField(JNI.env, javaObject, fieldID)
+    }
+
+    private func decodeInteger(forKey key: String) throws -> Int32 {
+        let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "I")
+        return JNI.api.GetIntField(JNI.env, javaObject, fieldID)
+    }
+
+    private func decodeLong(forKey key: String) throws -> Int64 {
+        let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "J")
+        return JNI.api.GetLongField(JNI.env, javaObject, fieldID)
+    }
+
+    private func decodeFloat(forKey key: String) throws -> Float {
+        let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "F")
+        return JNI.api.GetFloatField(JNI.env, javaObject, fieldID)
+    }
+
+    private func decodeDouble(forKey key: String) throws -> Double {
+        let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "D")
+        return JNI.api.GetDoubleField(JNI.env, javaObject, fieldID)
+    }
+
+    // MARK: KeyedDecodingContainerProtocol protocol
     public func decode(_ type: Bool.Type, forKey key: K) throws -> Bool {
+        // TODO: WTF? Delete decodeWithMissingStrategy with default false -> CRASH
         return try decodeWithMissingStrategy(defaultValue: false) {
-            return try decodeJava(type, forKey: key) ?? false
+            return try self.decodeBoolean(forKey: key.stringValue)
         }
     }
-    
+
+    public func decode(_ type: Int.Type, forKey key: K) throws -> Int {
+        return Int(try decodeInteger(forKey: key.stringValue))
+    }
+
+    public func decode(_ type: Int8.Type, forKey key: K) throws -> Int8 {
+        return try decodeByte(forKey: key.stringValue)
+    }
+
+    public func decode(_ type: Int16.Type, forKey key: K) throws -> Int16 {
+        return try decodeShort(forKey: key.stringValue)
+    }
+
+    public func decode(_ type: Int32.Type, forKey key: K) throws -> Int32 {
+        return try decodeInteger(forKey: key.stringValue)
+    }
+
+    public func decode(_ type: Int64.Type, forKey key: K) throws -> Int64 {
+        return try decodeLong(forKey: key.stringValue)
+    }
+
+    public func decode(_ type: UInt.Type, forKey key: K) throws -> UInt {
+        return UInt(try decodeInteger(forKey: key.stringValue))
+    }
+
+    public func decode(_ type: UInt8.Type, forKey key: K) throws -> UInt8 {
+        return UInt8(try decodeByte(forKey: key.stringValue))
+    }
+
+    public func decode(_ type: UInt16.Type, forKey key: K) throws -> UInt16 {
+        return UInt16(try decodeShort(forKey: key.stringValue))
+    }
+
+    public func decode(_ type: UInt32.Type, forKey key: K) throws -> UInt32 {
+        return UInt32(try decodeInteger(forKey: key.stringValue))
+    }
+
+    public func decode(_ type: UInt64.Type, forKey key: K) throws -> UInt64 {
+        return UInt64(try decodeLong(forKey: key.stringValue))
+    }
+
+    public func decode(_ type: Float.Type, forKey key: K) throws -> Float {
+        return try decodeFloat(forKey: key.stringValue)
+    }
+
+    public func decode(_ type: Double.Type, forKey key: K) throws -> Double {
+        return try decodeDouble(forKey: key.stringValue)
+    }
+
     // override all decodeIfPresent to prevent calling  decodeNil(forKey:)
     public func decodeIfPresent(_ type: Int.Type, forKey key: K) throws -> Int? {
         return try self.decodeJava(type, forKey: key)

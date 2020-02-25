@@ -335,6 +335,66 @@ public extension JNICore {
         })
     }
 
+    func CallBooleanMethod(_ object: jobject, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jboolean {
+        return checkArgumentAndWrap(args: args, { argsPtr in
+            api.CallBooleanMethodA(env, object, methodID, argsPtr)
+        })
+    }
+
+    func CallByteMethod(_ object: jobject, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jbyte {
+        return checkArgumentAndWrap(args: args, { argsPtr in
+            api.CallByteMethodA(env, object, methodID, argsPtr)
+        })
+    }
+
+    func CallShortMethod(_ object: jobject, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jshort {
+        return checkArgumentAndWrap(args: args, { argsPtr in
+            api.CallShortMethodA(env, object, methodID, argsPtr)
+        })
+    }
+
+    func CallIntMethod(_ object: jobject, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jint {
+        return checkArgumentAndWrap(args: args, { argsPtr in
+            api.CallIntMethodA(env, object, methodID, argsPtr)
+        })
+    }
+
+    func CallLongMethod(_ object: jobject, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jlong {
+        return checkArgumentAndWrap(args: args, { argsPtr in
+            api.CallLongMethodA(env, object, methodID, argsPtr)
+        })
+    }
+
+    func CallStaticBooleanMethod(_ clazz: jclass, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jboolean {
+        return checkArgumentAndWrap(args: args, { argsPtr in
+            api.CallStaticBooleanMethodA(env, clazz, methodID, argsPtr)
+        })
+    }
+
+    func CallStaticByteMethod(_ clazz: jclass, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jbyte {
+        return checkArgumentAndWrap(args: args, { argsPtr in
+            api.CallStaticByteMethodA(env, clazz, methodID, argsPtr)
+        })
+    }
+
+    func CallStaticShortMethod(_ clazz: jclass, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jshort {
+        return checkArgumentAndWrap(args: args, { argsPtr in
+            api.CallStaticShortMethodA(env, clazz, methodID, argsPtr)
+        })
+    }
+
+    func CallStaticIntMethod(_ clazz: jclass, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jint {
+        return checkArgumentAndWrap(args: args, { argsPtr in
+            api.CallStaticIntMethodA(env, clazz, methodID, argsPtr)
+        })
+    }
+
+    func CallStaticLongMethod(_ clazz: jclass, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jlong {
+        return checkArgumentAndWrap(args: args, { argsPtr in
+            api.CallStaticLongMethodA(env, clazz, methodID, argsPtr)
+        })
+    }
+
     func CallVoidMethod(_ object: jobject, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) {
         checkArgumentAndWrap(args: args, { argsPtr in
             api.CallVoidMethodA(env, object, methodID, argsPtr)

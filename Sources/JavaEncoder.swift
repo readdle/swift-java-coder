@@ -191,12 +191,100 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedEncodingContainerPro
     private var javaObject: jobject {
         return jniStorage.javaObject
     }
+
+    // MARK: Encode JNI primitive fields
+    func encodeBoolean(_ value: Bool, key: String) throws {
+        let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "Z")
+        JNI.api.SetBooleanField(JNI.env, javaObject, fieldID, jboolean(value ? JNI_TRUE : JNI_FALSE))
+    }
+
+    func encodeByte(_ value: Int8, key: String) throws {
+        let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "B")
+        JNI.api.SetByteField(JNI.env, javaObject, fieldID, value)
+    }
+
+    func encodeShort(_ value: Int16, key: String) throws {
+        let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "S")
+        JNI.api.SetShortField(JNI.env, javaObject, fieldID, value)
+    }
+
+    func encodeInteger(_ value: Int32, key: String) throws {
+        let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "I")
+        JNI.api.SetIntField(JNI.env, javaObject, fieldID, value)
+    }
+
+    func encodeLong(_ value: Int64, key: String) throws {
+        let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "J")
+        JNI.api.SetLongField(JNI.env, javaObject, fieldID, value)
+    }
+
+    func encodeFloat(_ value: Float, key: String) throws {
+        let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "F")
+        JNI.api.SetFloatField(JNI.env, javaObject, fieldID, value)
+    }
+
+    func encodeDouble(_ value: Double, key: String) throws {
+        let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "D")
+        JNI.api.SetDoubleField(JNI.env, javaObject, fieldID, value)
+    }
     
     // MARK: - KeyedEncodingContainerProtocol Methods
     public func encodeNil(forKey key: Key) throws {
         throw JavaCodingError.notSupported("JavaObjectContainer.encodeNil(forKey: \(key)")
     }
-    
+
+    func encode(_ value: Bool, forKey key: K) throws {
+        try encodeBoolean(value, key: key.stringValue)
+    }
+
+    func encode(_ value: Double, forKey key: K) throws {
+        try encodeDouble(value, key: key.stringValue)
+    }
+
+    func encode(_ value: Float, forKey key: K) throws {
+        try encodeFloat(value, key: key.stringValue)
+    }
+
+    func encode(_ value: Int, forKey key: K) throws {
+        try encodeInteger(Int32(value), key: key.stringValue)
+    }
+
+    func encode(_ value: Int8, forKey key: K) throws {
+        try encodeByte(value, key: key.stringValue)
+    }
+
+    func encode(_ value: Int16, forKey key: K) throws {
+        try encodeShort(value, key: key.stringValue)
+    }
+
+    func encode(_ value: Int32, forKey key: K) throws {
+        try encodeInteger(value, key: key.stringValue)
+    }
+
+    func encode(_ value: Int64, forKey key: K) throws {
+        try encodeLong(value, key: key.stringValue)
+    }
+
+    func encode(_ value: UInt, forKey key: K) throws {
+        try encodeInteger(Int32(bitPattern: UInt32(value)), key: key.stringValue)
+    }
+
+    func encode(_ value: UInt8, forKey key: K) throws {
+        try encodeByte(Int8(bitPattern: value), key: key.stringValue)
+    }
+
+    func encode(_ value: UInt16, forKey key: K) throws {
+        try encodeShort(Int16(bitPattern: value), key: key.stringValue)
+    }
+
+    func encode(_ value: UInt32, forKey key: K) throws {
+        try encodeInteger(Int32(bitPattern: value), key: key.stringValue)
+    }
+
+    func encode(_ value: UInt64, forKey key: K) throws {
+        try encodeLong(Int64(bitPattern: value), key: key.stringValue)
+    }
+
     public func encode<T : Encodable>(_ value: T, forKey key: Key) throws {
         do {
             let object = try self.encoder.box(value)
