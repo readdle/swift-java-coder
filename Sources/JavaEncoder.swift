@@ -285,7 +285,95 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedEncodingContainerPro
         try encodeLong(Int64(bitPattern: value), key: key.stringValue)
     }
 
+    func encodeIfPresent(_ value: Bool?, forKey key: K) throws {
+        if let value = value {
+            try encodeObject(value, forKey: key)
+        }
+    }
+
+    func encodeIfPresent(_ value: String?, forKey key: K) throws {
+        if let value = value {
+            try encodeObject(value, forKey: key)
+        }
+    }
+
+    func encodeIfPresent(_ value: Double?, forKey key: K) throws {
+        if let value = value {
+            try encodeObject(value, forKey: key)
+        }
+    }
+
+    func encodeIfPresent(_ value: Float?, forKey key: K) throws {
+        if let value = value {
+            try encodeObject(value, forKey: key)
+        }
+    }
+
+    func encodeIfPresent(_ value: Int?, forKey key: K) throws {
+        if let value = value {
+            try encodeObject(value, forKey: key)
+        }
+    }
+
+    func encodeIfPresent(_ value: Int8?, forKey key: K) throws {
+        if let value = value {
+            try encodeObject(value, forKey: key)
+        }
+    }
+
+    func encodeIfPresent(_ value: Int16?, forKey key: K) throws {
+        if let value = value {
+            try encodeObject(value, forKey: key)
+        }
+    }
+
+    func encodeIfPresent(_ value: Int32?, forKey key: K) throws {
+        if let value = value {
+            try encodeObject(value, forKey: key)
+        }
+    }
+
+    func encodeIfPresent(_ value: Int64?, forKey key: K) throws {
+        if let value = value {
+            try encodeObject(value, forKey: key)
+        }
+    }
+
+    func encodeIfPresent(_ value: UInt?, forKey key: K) throws {
+        if let value = value {
+            try encodeObject(value, forKey: key)
+        }
+    }
+
+    func encodeIfPresent(_ value: UInt8?, forKey key: K) throws {
+        if let value = value {
+            try encodeObject(value, forKey: key)
+        }
+    }
+
+    func encodeIfPresent(_ value: UInt16?, forKey key: K) throws {
+        if let value = value {
+            try encodeObject(value, forKey: key)
+        }
+    }
+
+    func encodeIfPresent(_ value: UInt32?, forKey key: K) throws {
+        if let value = value {
+            try encodeObject(value, forKey: key)
+        }
+    }
+
+    func encodeIfPresent(_ value: UInt64?, forKey key: K) throws {
+        if let value = value {
+            try encodeObject(value, forKey: key)
+        }
+    }
+
     public func encode<T : Encodable>(_ value: T, forKey key: Key) throws {
+        try self.encodeObject(value, forKey: key)
+    }
+
+    private func encodeObject<T : Encodable>(_ value: T, forKey key: Key) throws {
         do {
             let object = try self.encoder.box(value)
             let filed = try JNI.getJavaField(forClass: self.javaClass, field: key.stringValue, sig: object.type.sig)
