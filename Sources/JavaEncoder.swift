@@ -15,12 +15,30 @@ public enum MissingFieldsStrategy: Error {
     case ignore
 }
 
-public enum JavaCodingError: Error {
+public enum JavaCodingError: LocalizedError {
     case notSupported(String)
     case cantCreateObject(String)
     case cantFindObject(String)
     case nilNotSupported(String)
     case wrongArrayLength
+    case notEnoughBitsToRepresent(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .notSupported(let message):
+            return "Not supported: \(message)"
+        case .cantCreateObject(let message):
+            return "Can't create object: \(message)"
+        case .cantFindObject(let message):
+            return "Can't find object: \(message)"
+        case .nilNotSupported(let message):
+            return "Nil not supported: \(message)"
+        case .wrongArrayLength:
+            return "Wrong array length"
+        case .notEnoughBitsToRepresent(let message):
+            return "Not enough bits to represent \(message)"
+        }
+    }
 }
 
 indirect enum JNIStorageType {
