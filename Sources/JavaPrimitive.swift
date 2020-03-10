@@ -6,80 +6,148 @@ import Foundation
 import java_swift
 import CJavaVM
 
-public protocol JavaPrimitive: Codable {
+extension Bool {
 
-    func javaPrimitive() -> JNIArgumentProtocol
+    public init(fromJavaPrimitive javaPrimitive: jboolean) {
+        self.init(javaPrimitive == JNI_TRUE)
+    }
 
-}
-
-extension Bool: JavaPrimitive {
-    public func javaPrimitive() -> JNIArgumentProtocol {
+    public func javaPrimitive() throws -> jboolean {
         return jboolean(self ? JNI_TRUE : JNI_FALSE)
     }
 }
 
-extension Int: JavaPrimitive {
-    public func javaPrimitive() -> JNIArgumentProtocol {
+extension Int {
+
+    public init(fromJavaPrimitive javaPrimitive: jint) {
+        self.init(javaPrimitive)
+    }
+
+    public func javaPrimitive() throws -> jint {
+        if self > Int(Int32.max) || self < Int(Int32.min) {
+            throw JavaCodingError.notEnoughBitsToRepresent("Int \(self)")
+        }
         return jint(self)
     }
 }
 
-extension Int8: JavaPrimitive {
-    public func javaPrimitive() -> JNIArgumentProtocol {
+extension Int8 {
+
+    public init(fromJavaPrimitive javaPrimitive: jbyte) {
+        self.init(javaPrimitive)
+    }
+
+    public func javaPrimitive() throws -> jbyte {
         return jbyte(self)
     }
 }
 
-extension Int16: JavaPrimitive {
-    public func javaPrimitive() -> JNIArgumentProtocol {
+extension Int16 {
+
+    public init(fromJavaPrimitive javaPrimitive: jshort) {
+        self.init(javaPrimitive)
+    }
+
+    public func javaPrimitive() throws -> jshort {
         return jshort(self)
     }
 }
 
-extension Int32: JavaPrimitive {
-    public func javaPrimitive() -> JNIArgumentProtocol {
+extension Int32 {
+
+    public init(fromJavaPrimitive javaPrimitive: jint) {
+        self.init(javaPrimitive)
+    }
+
+    public func javaPrimitive() throws -> jint {
         return jint(self)
     }
 }
 
-extension Int64: JavaPrimitive {
-    public func javaPrimitive() -> JNIArgumentProtocol {
+extension Int64 {
+
+    public init(fromJavaPrimitive javaPrimitive: jlong) {
+        self.init(javaPrimitive)
+    }
+
+    public func javaPrimitive() throws -> jlong {
         return jlong(self)
     }
 }
 
-extension UInt: JavaPrimitive {
-    public func javaPrimitive() -> JNIArgumentProtocol {
-        return jlong(self)
+extension UInt {
+
+    public init(fromJavaPrimitive javaPrimitive: jint) {
+        self.init(javaPrimitive)
+    }
+
+    public func javaPrimitive() throws -> jint {
+        return jint(self)
     }
 }
 
-extension UInt8: JavaPrimitive {
-    public func javaPrimitive() -> JNIArgumentProtocol {
+extension UInt8 {
+
+    public init(fromJavaPrimitive javaPrimitive: jbyte) {
+        self.init(javaPrimitive)
+    }
+
+    public func javaPrimitive() throws -> jbyte {
+        return jbyte(self)
+    }
+}
+
+extension UInt16 {
+
+    public init(fromJavaPrimitive javaPrimitive: jshort) {
+        self.init(javaPrimitive)
+    }
+
+    public func javaPrimitive() throws -> jshort {
         return jshort(self)
     }
 }
 
-extension UInt16: JavaPrimitive {
-    public func javaPrimitive() -> JNIArgumentProtocol {
+extension UInt32 {
+
+    public init(fromJavaPrimitive javaPrimitive: jint) {
+        self.init(javaPrimitive)
+    }
+
+    public func javaPrimitive() throws -> jint {
         return jint(self)
     }
 }
 
-extension UInt32: JavaPrimitive {
-    public func javaPrimitive() -> JNIArgumentProtocol {
+extension UInt64 {
+
+    public init(fromJavaPrimitive javaPrimitive: jlong) {
+        self.init(javaPrimitive)
+    }
+
+    public func javaPrimitive() throws -> jlong {
         return jlong(self)
     }
 }
 
-extension Float: JavaPrimitive {
-    public func javaPrimitive() -> JNIArgumentProtocol {
+extension Float {
+
+    public init(fromJavaPrimitive javaPrimitive: jfloat) {
+        self.init(javaPrimitive)
+    }
+
+    public func javaPrimitive() throws -> jfloat {
         return jfloat(self)
     }
 }
 
-extension Double: JavaPrimitive {
-    public func javaPrimitive() -> JNIArgumentProtocol {
+extension Double {
+
+    public init(fromJavaPrimitive javaPrimitive: jdouble) {
+        self.init(javaPrimitive)
+    }
+
+    public func javaPrimitive() throws -> jdouble {
         return jdouble(self)
     }
 }
