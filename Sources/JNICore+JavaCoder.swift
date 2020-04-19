@@ -115,7 +115,7 @@ public extension JNICore {
         return jboolean(JNI_FALSE)
     }
     
-    enum JNIError: Error {
+    enum JNIError: Error, LocalizedError {
         
         case classNotFoundException(String)
         case methodNotFoundException(String)
@@ -131,6 +131,17 @@ public extension JNICore {
                 assert(JNI.api.ThrowNew(JNI.env, ExceptionClass, "FieldNotFoundException: \(message)") == 0)
             }
             
+        }
+
+        public var errorDescription: String? {
+            switch self {
+            case .classNotFoundException(let message):
+                return "ClassNotFoundaException: \(message)"
+            case .methodNotFoundException(let message):
+                return "MethodNotFoundException: \(message)"
+            case .fieldNotFoundException(let message):
+                return "FieldNotFoundException: \(message)"
+            }
         }
     }
     
@@ -253,6 +264,18 @@ public extension JNICore {
             api.CallLongMethodA(env, object, methodID, argsPtr)
         })
     }
+
+    func CallFloatMethod(_ object: jobject, methodID: jmethodID, args: [jvalue] = []) -> jfloat {
+        return checkArgument(args: args, { argsPtr in
+            api.CallFloatMethodA(env, object, methodID, argsPtr)
+        })
+    }
+
+    func CallDoubleMethod(_ object: jobject, methodID: jmethodID, args: [jvalue] = []) -> jdouble {
+        return checkArgument(args: args, { argsPtr in
+            api.CallDoubleMethodA(env, object, methodID, argsPtr)
+        })
+    }
     
     func CallObjectMethod(_ object: jobject, methodID: jmethodID, args: [jvalue] = []) -> jobject? {
         return checkArgument(args: args, { argsPtr in
@@ -362,6 +385,18 @@ public extension JNICore {
     func CallLongMethod(_ object: jobject, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jlong {
         return checkArgumentAndWrap(args: args, { argsPtr in
             api.CallLongMethodA(env, object, methodID, argsPtr)
+        })
+    }
+
+    func CallFloatMethod(_ object: jobject, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jfloat {
+        return checkArgumentAndWrap(args: args, { argsPtr in
+            api.CallFloatMethodA(env, object, methodID, argsPtr)
+        })
+    }
+
+    func CallDoubleMethod(_ object: jobject, _ methodID: jmethodID, _ args: JNIArgumentProtocol...) -> jdouble {
+        return checkArgumentAndWrap(args: args, { argsPtr in
+            api.CallDoubleMethodA(env, object, methodID, argsPtr)
         })
     }
 

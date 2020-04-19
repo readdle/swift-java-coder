@@ -6,8 +6,8 @@ import Foundation
 import java_swift
 import CJavaVM
 
-public typealias JavaEncodableClosure = (Any) throws -> jobject
-public typealias JavaDecodableClosure = (jobject) throws -> Decodable
+public typealias JavaEncodableClosure = (Any, [CodingKey]) throws -> jobject
+public typealias JavaDecodableClosure = (jobject, [CodingKey]) throws -> Decodable
 
 public struct JavaCoderConfig {
 
@@ -44,152 +44,157 @@ public struct JavaCoderConfig {
     public static func RegisterBasicJavaTypes() {
 
         RegisterType(type: Int.self, javaClassname: IntegerClassname, encodableClosure: {
-            // jint for macOS and Android different, that's why we make cast to jint() here
-            let args = [jvalue(i: jint($0 as! Int))]
-            return JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)!
-        }, decodableClosure: {
-            return Int(JNI.CallIntMethod($0, methodID: NumberIntValueMethod))
-        })
-
-        RegisterType(type: Int8.self, javaClassname: ByteClassname, encodableClosure: {
-            let args = [jvalue(b: $0 as! Int8)]
-            return JNI.NewObject(ByteClass, methodID: ByteConstructor, args: args)!
-        }, decodableClosure: {
-            return JNI.CallByteMethod($0, methodID: NumberByteValueMethod)
-        })
-
-        RegisterType(type: Int16.self, javaClassname: ShortClassname, encodableClosure: {
-            let args = [jvalue(s: $0 as! Int16)]
-            return JNI.NewObject(ShortClass, methodID: ShortConstructor, args: args)!
-        }, decodableClosure: {
-            return JNI.CallShortMethod($0, methodID: NumberShortValueMethod)
-        })
-
-        RegisterType(type: Int32.self, javaClassname: IntegerClassname, encodableClosure: {
-            let args = [jvalue(i: jint($0 as! Int32))]
-            return JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)!
-        }, decodableClosure: {
-            return Int32(JNI.CallIntMethod($0, methodID: NumberIntValueMethod))
-        })
-
-        RegisterType(type: Int64.self, javaClassname: LongClassname, encodableClosure: {
-            let args = [jvalue(j: $0 as! Int64)]
-            return JNI.NewObject(LongClass, methodID: LongConstructor, args: args)!
-        }, decodableClosure: {
-            return JNI.CallLongMethod($0, methodID: NumberLongValueMethod)
-        })
-
-        RegisterType(type: UInt.self, javaClassname: LongClassname, encodableClosure: {
-            let args = [jvalue(j:  Int64($0 as! UInt))]
-            return JNI.NewObject(LongClass, methodID: LongConstructor, args: args)!
-        }, decodableClosure: {
-            return UInt(JNI.CallLongMethod($0, methodID: NumberLongValueMethod))
-        })
-
-        RegisterType(type: UInt8.self, javaClassname: ShortClassname, encodableClosure: {
-            let args = [jvalue(s: Int16($0 as! UInt8))]
-            return JNI.NewObject(ShortClass, methodID: ShortConstructor, args: args)!
-        }, decodableClosure: {
-            return UInt8(JNI.CallShortMethod($0, methodID: NumberShortValueMethod))
-        })
-
-        RegisterType(type: UInt16.self, javaClassname: IntegerClassname, encodableClosure: {
-            let args = [jvalue(i: jint($0 as! UInt16))]
-            return JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)!
-        }, decodableClosure: {
-            return UInt16(JNI.CallIntMethod($0, methodID: NumberIntValueMethod))
-        })
-
-        RegisterType(type: UInt32.self, javaClassname: LongClassname, encodableClosure: {
-            let args = [jvalue(j: Int64($0 as! UInt32))]
-            return JNI.NewObject(LongClass, methodID: LongConstructor, args: args)!
-        }, decodableClosure: {
-            return UInt32(JNI.CallLongMethod($0, methodID: NumberLongValueMethod))
-        })
-
-        RegisterType(type: UInt64.self, javaClassname: BigIntegerClassname, encodableClosure: {
-            var locals = [jobject]()
-            let args = [jvalue(l: String($0 as! UInt64).localJavaObject(&locals))]
-            return JNI.check(JNI.NewObject(BigIntegerClass, methodID: BigIntegerConstructor, args: args)!, &locals)
-        }, decodableClosure: {
-            let javaString = JNI.CallObjectMethod($0, methodID: ObjectToStringMethod)
-            defer {
-                JNI.api.DeleteLocalRef(JNI.env, javaString)
+            let value = $0 as! Int
+            if value < Int(Int32.min) || value > Int(Int32.max) {
+                let errorDescription = "Not enough bits to represent Int"
+                let context = EncodingError.Context(codingPath: $1, debugDescription: errorDescription)
+                throw EncodingError.invalidValue(value, context)
             }
-            let stringRepresentation = String(javaObject: javaString)
-            return UInt64(stringRepresentation)
+            let args = [jvalue(i: jint(value))]
+            return JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)!
+        }, decodableClosure: { value, _ in
+            Int(JNI.CallIntMethod(value, methodID: NumberIntValueMethod))
         })
 
-        RegisterType(type: Float.self, javaClassname: FloatClassname, encodableClosure: {
-            let args = [jvalue(f: $0 as! Float)]
+        RegisterType(type: Int8.self, javaClassname: ByteClassname, encodableClosure: { value, _ in
+            let args = [jvalue(b: value as! Int8)]
+            return JNI.NewObject(ByteClass, methodID: ByteConstructor, args: args)!
+        }, decodableClosure: { value, _ in
+            JNI.CallByteMethod(value, methodID: NumberByteValueMethod)
+        })
+
+        RegisterType(type: Int16.self, javaClassname: ShortClassname, encodableClosure: { value, _ in
+            let args = [jvalue(s: value as! Int16)]
+            return JNI.NewObject(ShortClass, methodID: ShortConstructor, args: args)!
+        }, decodableClosure: { value, _ in
+            JNI.CallShortMethod(value, methodID: NumberShortValueMethod)
+        })
+
+        RegisterType(type: Int32.self, javaClassname: IntegerClassname, encodableClosure: { value, _ in
+            let args = [jvalue(i: jint(value as! Int32))]
+            return JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)!
+        }, decodableClosure: { value, _ in
+            JNI.CallIntMethod(value, methodID: NumberIntValueMethod)
+        })
+
+        RegisterType(type: Int64.self, javaClassname: LongClassname, encodableClosure: { value, _ in
+            let args = [jvalue(j: value as! Int64)]
+            return JNI.NewObject(LongClass, methodID: LongConstructor, args: args)!
+        }, decodableClosure: { value, _ in
+            JNI.CallLongMethod(value, methodID: NumberLongValueMethod)
+        })
+
+        RegisterType(type: UInt.self, javaClassname: IntegerClassname, encodableClosure: {
+            let value = $0 as! UInt
+            if value < UInt(UInt32.min) || value > Int(UInt32.max) {
+                let errorDescription = "Not enough bits to represent UInt"
+                let context = EncodingError.Context(codingPath: $1, debugDescription: errorDescription)
+                throw EncodingError.invalidValue(value, context)
+            }
+            let args = [jvalue(i: jint(bitPattern: UInt32(value)))]
+            return JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)!
+        }, decodableClosure: { value, _ in
+            UInt(UInt32(bitPattern: JNI.CallIntMethod(value, methodID: NumberIntValueMethod)))
+        })
+
+        RegisterType(type: UInt8.self, javaClassname: ByteClassname, encodableClosure: { value, _ in
+            let args = [jvalue(b: jbyte(bitPattern: value as! UInt8))]
+            return JNI.NewObject(ByteClass, methodID: ByteConstructor, args: args)!
+        }, decodableClosure: { value, _ in
+            UInt8(bitPattern: JNI.CallByteMethod(value, methodID: NumberByteValueMethod))
+        })
+
+        RegisterType(type: UInt16.self, javaClassname: ShortClassname, encodableClosure: { value, _ in
+            let args = [jvalue(s: jshort(bitPattern: value as! UInt16))]
+            return JNI.NewObject(ShortClass, methodID: ShortConstructor, args: args)!
+        }, decodableClosure: { value, _ in
+            UInt16(bitPattern: JNI.CallShortMethod(value, methodID: NumberShortValueMethod))
+        })
+
+        RegisterType(type: UInt32.self, javaClassname: IntegerClassname, encodableClosure: { value, _ in
+            let args = [jvalue(i: jint(bitPattern: value as! UInt32))]
+            return JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)!
+        }, decodableClosure: { value, _ in
+            UInt32(bitPattern: JNI.CallIntMethod(value, methodID: NumberIntValueMethod))
+        })
+
+        RegisterType(type: UInt64.self, javaClassname: LongClassname, encodableClosure: { value, _ in
+            let args = [jvalue(j: jlong(bitPattern: value as! UInt64))]
+            return JNI.NewObject(LongClass, methodID: LongConstructor, args: args)!
+        }, decodableClosure: { value, _ in
+            UInt64(bitPattern: JNI.CallLongMethod(value, methodID: NumberLongValueMethod))
+        })
+
+        RegisterType(type: Float.self, javaClassname: FloatClassname, encodableClosure: { value, _ in
+            let args = [jvalue(f: value as! Float)]
             return JNI.NewObject(FloatClass, methodID: FloatConstructor, args: args)!
-        }, decodableClosure: {
-            return JNI.api.CallFloatMethodA(JNI.env, $0, NumberFloatValueMethod, nil)
+        }, decodableClosure: { value, _ in
+            JNI.CallFloatMethod(value, methodID: NumberFloatValueMethod)
         })
 
-        RegisterType(type: Double.self, javaClassname: DoubleClassname, encodableClosure: {
-            let args = [jvalue(d: $0 as! Double)]
+        RegisterType(type: Double.self, javaClassname: DoubleClassname, encodableClosure: { value, _ in
+            let args = [jvalue(d: value as! Double)]
             return JNI.NewObject(DoubleClass, methodID: DoubleConstructor, args: args)!
-        }, decodableClosure: {
-            return JNI.api.CallDoubleMethodA(JNI.env, $0, NumberDoubleValueMethod, nil)
+        }, decodableClosure: { value, _ in
+            JNI.CallDoubleMethod(value, methodID: NumberDoubleValueMethod)
         })
 
-        RegisterType(type: Bool.self, javaClassname: BooleanClassname, encodableClosure: {
-            let args = [jvalue(z: $0 as! Bool ? JNI.TRUE : JNI.FALSE)]
+        RegisterType(type: Bool.self, javaClassname: BooleanClassname, encodableClosure: { value, _ in
+            let args = [jvalue(z: value as! Bool ? JNI.TRUE : JNI.FALSE)]
             return JNI.NewObject(BooleanClass, methodID: BooleanConstructor, args: args)!
-        }, decodableClosure: {
-            return (JNI.CallBooleanMethod($0, methodID: NumberBooleanValueMethod) == JNI.TRUE)
+        }, decodableClosure: { value, _ in
+            JNI.CallBooleanMethod(value, methodID: NumberBooleanValueMethod) == JNI.TRUE
         })
 
-        RegisterType(type: String.self, javaClassname: StringClassname, encodableClosure: {
-            let valueString = $0 as! String
+        RegisterType(type: String.self, javaClassname: StringClassname, encodableClosure: { value, _ in
+            let valueString = value as! String
             var locals = [jobject]()
             // Locals ignored because JNIStorageObject take ownership of LocalReference
             return valueString.localJavaObject(&locals)!
-        }, decodableClosure: {
-            return String(javaObject: $0)
+        }, decodableClosure: { value, _ in
+            String(javaObject: value)
         })
 
-        RegisterType(type: Date.self, javaClassname: DateClassname, encodableClosure: {
-            let valueDate = $0 as! Date
+        RegisterType(type: Date.self, javaClassname: DateClassname, encodableClosure: { value, _ in
+            let valueDate = value as! Date
             let args = [jvalue(j: jlong(valueDate.timeIntervalSince1970 * 1000))]
             return JNI.NewObject(DateClass, methodID: DateConstructor, args: args)!
-        }, decodableClosure: {
-            let timeInterval = JNI.api.CallLongMethodA(JNI.env, $0, DateGetTimeMethod, nil)
+        }, decodableClosure: { value, _ in
+            let timeInterval = JNI.api.CallLongMethodA(JNI.env, value, DateGetTimeMethod, nil)
             // Java save TimeInterval in UInt64 milliseconds
             return Date(timeIntervalSince1970: TimeInterval(timeInterval) / 1000.0)
         })
 
-        RegisterType(type: URL.self, javaClassname: UriClassname, encodableClosure: {
+        RegisterType(type: URL.self, javaClassname: UriClassname, encodableClosure: { value, _ in
             var locals = [jobject]()
-            let javaString = ($0 as! URL).absoluteString.localJavaObject(&locals)
+            let javaString = (value as! URL).absoluteString.localJavaObject(&locals)
             let args = [jvalue(l: javaString)]
             JNI.SaveFatalErrorMessage("UriConstructor")
             defer {
                 JNI.RemoveFatalErrorMessage()
             }
             return JNI.check(JNI.CallStaticObjectMethod(UriClass, methodID: UriConstructor!, args: args)!, &locals)
-        }, decodableClosure: {
-            let pathString = JNI.api.CallObjectMethodA(JNI.env, $0, ObjectToStringMethod, nil)
+        }, decodableClosure: { value, _ in
+            let pathString = JNI.api.CallObjectMethodA(JNI.env, value, ObjectToStringMethod, nil)
             return URL(string: String(javaObject: pathString))
         })
 
-        RegisterType(type: Data.self, javaClassname: ByteBufferClassname, encodableClosure: {
-            let valueData = $0 as! Data
+        RegisterType(type: Data.self, javaClassname: ByteBufferClassname, encodableClosure: { data, codingPath in
+            let valueData = data as! Data
             let byteArray = JNI.api.NewByteArray(JNI.env, jint(valueData.count))
             if let throwable = JNI.ExceptionCheck() {
-                throw EncodingError.invalidValue($0, EncodingError.Context(codingPath: [],
+                throw EncodingError.invalidValue(data, EncodingError.Context(codingPath: codingPath,
                         debugDescription: "Can't create NewByteArray \(valueData.count)"))
             }
             try valueData.withUnsafeBytes({ pointer in
                 guard let bytes = pointer.baseAddress?.assumingMemoryBound(to: Int8.self) else {
-                    throw EncodingError.invalidValue(valueData, EncodingError.Context(codingPath: [],
+                    throw EncodingError.invalidValue(valueData, EncodingError.Context(codingPath: codingPath,
                             debugDescription: "Can't get unsafeBytes \(valueData.count)"))
                 }
                 JNI.api.SetByteArrayRegion(JNI.env, byteArray, 0, jint(valueData.count), bytes)
             })
             if let throwable = JNI.ExceptionCheck() {
-                throw EncodingError.invalidValue($0, EncodingError.Context(codingPath: [],
+                throw EncodingError.invalidValue(data, EncodingError.Context(codingPath: codingPath,
                         debugDescription: "SetByteArrayRegion failed \(valueData.count)"))
             }
             JNI.SaveFatalErrorMessage("java/nio/ByteBuffer wrap")
@@ -197,8 +202,8 @@ public struct JavaCoderConfig {
                 JNI.RemoveFatalErrorMessage()
             }
             return JNI.CallStaticObjectMethod(ByteBufferClass, methodID: ByteBufferWrap, args: [jvalue(l: byteArray)])!
-        }, decodableClosure: {
-            let byteArray = JNI.CallObjectMethod($0, methodID: ByteBufferArray)
+        }, decodableClosure: { value, _ in
+            let byteArray = JNI.CallObjectMethod(value, methodID: ByteBufferArray)
             defer {
                 JNI.api.DeleteLocalRef(JNI.env, byteArray)
             }

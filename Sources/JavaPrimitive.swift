@@ -23,9 +23,11 @@ extension Int {
         self.init(javaPrimitive)
     }
 
-    public func javaPrimitive() throws -> jint {
-        if self > Int(Int32.max) || self < Int(Int32.min) {
-            throw JavaCodingError.notEnoughBitsToRepresent("Int \(self)")
+    public func javaPrimitive(codingPath: [CodingKey] = []) throws -> jint {
+        if self < Int(Int32.min) || self > Int(Int32.max) {
+            let errorDescription = "Not enough bits to represent Int"
+            let context = EncodingError.Context(codingPath: codingPath, debugDescription: errorDescription)
+            throw EncodingError.invalidValue(self, context)
         }
         return jint(self)
     }
@@ -78,55 +80,61 @@ extension Int64 {
 extension UInt {
 
     public init(fromJavaPrimitive javaPrimitive: jint) {
-        self.init(javaPrimitive)
+        self.init(UInt32(bitPattern: javaPrimitive))
     }
 
-    public func javaPrimitive() throws -> jint {
-        return jint(self)
+    public func javaPrimitive(codingPath: [CodingKey] = []) throws -> jint {
+        if self < UInt(UInt32.min) || self > Int(UInt32.max) {
+            let errorDescription = "Not enough bits to represent UInt"
+            let context = EncodingError.Context(codingPath: codingPath, debugDescription: errorDescription)
+            throw EncodingError.invalidValue(self, context)
+        }
+        let uint32 = UInt32(self)
+        return jint(bitPattern: uint32)
     }
 }
 
 extension UInt8 {
 
     public init(fromJavaPrimitive javaPrimitive: jbyte) {
-        self.init(javaPrimitive)
+        self.init(bitPattern: javaPrimitive)
     }
 
     public func javaPrimitive() throws -> jbyte {
-        return jbyte(self)
+        return jbyte(bitPattern: self)
     }
 }
 
 extension UInt16 {
 
     public init(fromJavaPrimitive javaPrimitive: jshort) {
-        self.init(javaPrimitive)
+        self.init(bitPattern: javaPrimitive)
     }
 
     public func javaPrimitive() throws -> jshort {
-        return jshort(self)
+        return jshort(bitPattern: self)
     }
 }
 
 extension UInt32 {
 
     public init(fromJavaPrimitive javaPrimitive: jint) {
-        self.init(javaPrimitive)
+        self.init(bitPattern: javaPrimitive)
     }
 
     public func javaPrimitive() throws -> jint {
-        return jint(self)
+        return jint(bitPattern: self)
     }
 }
 
 extension UInt64 {
 
     public init(fromJavaPrimitive javaPrimitive: jlong) {
-        self.init(javaPrimitive)
+        self.init(bitPattern: javaPrimitive)
     }
 
     public func javaPrimitive() throws -> jlong {
-        return jlong(self)
+        return jlong(bitPattern: self)
     }
 }
 
