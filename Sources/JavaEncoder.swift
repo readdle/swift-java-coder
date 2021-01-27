@@ -690,8 +690,24 @@ class JavaEnumValueEncodingContainer: SingleValueEncodingContainer {
     ]
     
     public func encode<T : Encodable>(_ valueType: T) throws {
-        let context = EncodingError.Context(codingPath: codingPath, debugDescription: "Unsupported: type \(type(of: valueType))")
-        throw EncodingError.invalidValue(valueType, context)
+        let rawValue = try encoder.box(valueType, codingPath: codingPath)
+        let clazz = try JNI.getJavaClass(javaClass)
+        // If jniStorage.javaObject == nil its enum, else optionSet
+        if jniStorage.javaObject == nil {
+            let valueOfMethodID = try JNI.getStaticJavaMethod(forClass: javaClass, method: "valueOf", sig: "(\(rawValue.type.sig))L\(javaClass);")
+            JNI.SaveFatalErrorMessage("\(javaClass) valueOf \(rawValue.type.sig)")
+            defer {
+                JNI.RemoveFatalErrorMessage()
+            }
+            guard let javaObject = JNI.CallStaticObjectMethod(clazz, methodID: valueOfMethodID, args: [jvalue(l: rawValue.javaObject)]) else {
+                throw JavaCodingError.cantCreateObject(javaClass)
+            }
+            jniStorage.javaObject = javaObject
+        }
+        else {
+            let context = EncodingError.Context(codingPath: codingPath, debugDescription: "Unsupported: type \(type(of: valueType))")
+            throw EncodingError.invalidValue(valueType, context)
+        }
     }
 }
 

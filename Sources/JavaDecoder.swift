@@ -687,7 +687,15 @@ fileprivate class JavaEnumContainer: SingleValueDecodingContainer {
     }
     
     func decode<T>(_ valueType: T.Type) throws -> T where T : Decodable {
-        fatalError("Unsupported: type \(type(of: valueType))")
+        let classname = decoder.getJavaClassname(forType: valueType)
+        let fieldID = try JNI.getJavaField(forClass: javaClass, field: "rawValue", sig: "L\(classname);")
+        guard let object = JNI.api.GetObjectField(JNI.env, javaObject, fieldID) else {
+            throw JavaCodingError.notSupported(javaClass)
+        }
+        defer {
+            JNI.DeleteLocalRef(object)
+        }
+        return try decoder.unbox(type: valueType, javaObject: object, codingPath: codingPath)
     }
 }
 
