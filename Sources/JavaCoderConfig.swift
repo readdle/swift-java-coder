@@ -91,10 +91,18 @@ public struct JavaCoderConfig {
                 let context = EncodingError.Context(codingPath: $1, debugDescription: errorDescription)
                 throw EncodingError.invalidValue(value, context)
             }
+            #if arch(x86_64) || arch(arm64)
             let args = [jvalue(i: jint(bitPattern: UInt32(value)))]
+            #else
+            let args = [jvalue(i: jint(value))]
+            #endif
             return JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)!
         }, decodableClosure: { value, _ in
-            UInt(UInt32(bitPattern: JNI.CallIntMethod(value, methodID: NumberIntValueMethod)))
+           	#if arch(x86_64) || arch(arm64)
+           	return UInt(UInt32(bitPattern: JNI.CallIntMethod(value, methodID: NumberIntValueMethod)))
+           	#else
+           	return UInt(JNI.CallIntMethod(value, methodID: NumberIntValueMethod))
+           	#endif
         })
 
         RegisterType(type: UInt8.self, javaClassname: ByteClassname, encodableClosure: { value, _ in
@@ -112,10 +120,18 @@ public struct JavaCoderConfig {
         })
 
         RegisterType(type: UInt32.self, javaClassname: IntegerClassname, encodableClosure: { value, _ in
+            #if arch(x86_64) || arch(arm64)
             let args = [jvalue(i: jint(bitPattern: value as! UInt32))]
+            #else
+            let args = [jvalue(i: jint(value as! UInt32))]
+            #endif
             return JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)!
         }, decodableClosure: { value, _ in
-            UInt32(bitPattern: JNI.CallIntMethod(value, methodID: NumberIntValueMethod))
+            #if arch(x86_64) || arch(arm64)
+            return UInt32(bitPattern: JNI.CallIntMethod(value, methodID: NumberIntValueMethod))
+            #else
+            return UInt32(JNI.CallIntMethod(value, methodID: NumberIntValueMethod))
+            #endif
         })
 
         RegisterType(type: UInt64.self, javaClassname: LongClassname, encodableClosure: { value, _ in

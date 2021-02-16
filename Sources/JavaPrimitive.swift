@@ -80,7 +80,11 @@ extension Int64 {
 extension UInt {
 
     public init(fromJavaPrimitive javaPrimitive: jint) {
+        #if arch(x86_64) || arch(arm64)
         self.init(UInt32(bitPattern: javaPrimitive))
+        #else
+        self.init(javaPrimitive)
+        #endif
     }
 
     public func javaPrimitive(codingPath: [CodingKey] = []) throws -> jint {
@@ -90,7 +94,11 @@ extension UInt {
             throw EncodingError.invalidValue(self, context)
         }
         let uint32 = UInt32(self)
+        #if arch(x86_64) || arch(arm64)
         return jint(bitPattern: uint32)
+        #else
+        return jint(uint32)
+        #endif
     }
 }
 
@@ -119,11 +127,19 @@ extension UInt16 {
 extension UInt32 {
 
     public init(fromJavaPrimitive javaPrimitive: jint) {
+        #if arch(x86_64) || arch(arm64)
         self.init(bitPattern: javaPrimitive)
+        #else
+        self.init(javaPrimitive)
+        #endif
     }
 
     public func javaPrimitive() throws -> jint {
+        #if arch(x86_64) || arch(arm64)
         return jint(bitPattern: self)
+        #else
+        return jint(self)
+        #endif
     }
 }
 
