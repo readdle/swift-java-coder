@@ -83,21 +83,20 @@ extension UInt {
         #if arch(x86_64) || arch(arm64)
         self.init(UInt32(bitPattern: javaPrimitive))
         #else
-        self.init(javaPrimitive)
+        self.init(bitPattern: javaPrimitive)
         #endif
     }
 
     public func javaPrimitive(codingPath: [CodingKey] = []) throws -> jint {
-        if self < UInt(UInt32.min) || self > Int(UInt32.max) {
+        if self < UInt(UInt32.min) || self > UInt(UInt32.max) {
             let errorDescription = "Not enough bits to represent UInt"
             let context = EncodingError.Context(codingPath: codingPath, debugDescription: errorDescription)
             throw EncodingError.invalidValue(self, context)
         }
-        let uint32 = UInt32(self)
         #if arch(x86_64) || arch(arm64)
-        return jint(bitPattern: uint32)
+        return jint(bitPattern: UInt32(self))
         #else
-        return jint(uint32)
+        return jint(bitPattern: self)
         #endif
     }
 }
@@ -130,7 +129,7 @@ extension UInt32 {
         #if arch(x86_64) || arch(arm64)
         self.init(bitPattern: javaPrimitive)
         #else
-        self.init(javaPrimitive)
+        self.init(UInt(bitPattern: javaPrimitive))
         #endif
     }
 
@@ -138,7 +137,7 @@ extension UInt32 {
         #if arch(x86_64) || arch(arm64)
         return jint(bitPattern: self)
         #else
-        return jint(self)
+        return jint(bitPattern: UInt(self))
         #endif
     }
 }
