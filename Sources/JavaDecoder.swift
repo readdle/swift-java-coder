@@ -151,7 +151,11 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedDecodingContainerPro
 
     private func decodeInteger(forKey key: String) throws -> Int32 {
         let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "I")
+        #if arch(x86_64) || arch(arm64)
         return JNI.api.GetIntField(JNI.env, javaObject, fieldID)
+        #else
+        return Int32(JNI.api.GetIntField(JNI.env, javaObject, fieldID))
+        #endif
     }
 
     private func decodeLong(forKey key: String) throws -> Int64 {

@@ -43,100 +43,112 @@ public struct JavaCoderConfig {
 
     public static func RegisterBasicJavaTypes() {
 
-        RegisterType(type: Int.self, javaClassname: IntegerClassname, encodableClosure: {
-            let value = $0 as! Int
-            if value < Int(Int32.min) || value > Int(Int32.max) {
-                let errorDescription = "Not enough bits to represent Int"
-                let context = EncodingError.Context(codingPath: $1, debugDescription: errorDescription)
-                throw EncodingError.invalidValue(value, context)
-            }
-            let args = [jvalue(i: jint(value))]
+        RegisterType(type: Int.self, javaClassname: IntegerClassname, encodableClosure: { any, codingPath in
+            let value = any as! Int
+            let primitive = try value.javaPrimitive(codingPath: codingPath)
+            let args = [jvalue(i: primitive)]
             return JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)!
         }, decodableClosure: { value, _ in
-            Int(JNI.CallIntMethod(value, methodID: NumberIntValueMethod))
+            Int(fromJavaPrimitive: JNI.CallIntMethod(value, methodID: NumberIntValueMethod))
         })
 
-        RegisterType(type: Int8.self, javaClassname: ByteClassname, encodableClosure: { value, _ in
-            let args = [jvalue(b: value as! Int8)]
+        RegisterType(type: Int8.self, javaClassname: ByteClassname, encodableClosure: { any, _ in
+            let value = any as! Int8
+            let primitive = try value.javaPrimitive()
+            let args = [jvalue(b: primitive)]
             return JNI.NewObject(ByteClass, methodID: ByteConstructor, args: args)!
         }, decodableClosure: { value, _ in
-            JNI.CallByteMethod(value, methodID: NumberByteValueMethod)
+            Int8(fromJavaPrimitive: JNI.CallByteMethod(value, methodID: NumberByteValueMethod))
         })
 
-        RegisterType(type: Int16.self, javaClassname: ShortClassname, encodableClosure: { value, _ in
-            let args = [jvalue(s: value as! Int16)]
+        RegisterType(type: Int16.self, javaClassname: ShortClassname, encodableClosure: { any, _ in
+            let value = any as! Int16
+            let primitive = try value.javaPrimitive()
+            let args = [jvalue(s: primitive)]
             return JNI.NewObject(ShortClass, methodID: ShortConstructor, args: args)!
         }, decodableClosure: { value, _ in
-            JNI.CallShortMethod(value, methodID: NumberShortValueMethod)
+            Int16(fromJavaPrimitive: JNI.CallShortMethod(value, methodID: NumberShortValueMethod))
         })
 
-        RegisterType(type: Int32.self, javaClassname: IntegerClassname, encodableClosure: { value, _ in
-            let args = [jvalue(i: jint(value as! Int32))]
+        RegisterType(type: Int32.self, javaClassname: IntegerClassname, encodableClosure: { any, _ in
+            let value = any as! Int32
+            let primitive = try value.javaPrimitive()
+            let args = [jvalue(i: primitive)]
             return JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)!
         }, decodableClosure: { value, _ in
-            JNI.CallIntMethod(value, methodID: NumberIntValueMethod)
+            Int32(fromJavaPrimitive: JNI.CallIntMethod(value, methodID: NumberIntValueMethod))
         })
 
-        RegisterType(type: Int64.self, javaClassname: LongClassname, encodableClosure: { value, _ in
-            let args = [jvalue(j: value as! Int64)]
+        RegisterType(type: Int64.self, javaClassname: LongClassname, encodableClosure: { any, _ in
+            let value = any as! Int64
+            let primitive = try value.javaPrimitive()
+            let args = [jvalue(j: primitive)]
             return JNI.NewObject(LongClass, methodID: LongConstructor, args: args)!
         }, decodableClosure: { value, _ in
-            JNI.CallLongMethod(value, methodID: NumberLongValueMethod)
+            Int64(fromJavaPrimitive: JNI.CallLongMethod(value, methodID: NumberLongValueMethod))
         })
 
-        RegisterType(type: UInt.self, javaClassname: IntegerClassname, encodableClosure: {
-            let value = $0 as! UInt
-            if value < UInt(UInt32.min) || value > Int(UInt32.max) {
-                let errorDescription = "Not enough bits to represent UInt"
-                let context = EncodingError.Context(codingPath: $1, debugDescription: errorDescription)
-                throw EncodingError.invalidValue(value, context)
-            }
-            let args = [jvalue(i: jint(bitPattern: UInt32(value)))]
+        RegisterType(type: UInt.self, javaClassname: IntegerClassname, encodableClosure: { any, codingPath in
+            let value = any as! UInt
+            let primitive = try value.javaPrimitive(codingPath: codingPath)
+            let args = [jvalue(i: primitive)]
             return JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)!
         }, decodableClosure: { value, _ in
-            UInt(UInt32(bitPattern: JNI.CallIntMethod(value, methodID: NumberIntValueMethod)))
+            UInt(fromJavaPrimitive: JNI.CallIntMethod(value, methodID: NumberIntValueMethod))
         })
 
-        RegisterType(type: UInt8.self, javaClassname: ByteClassname, encodableClosure: { value, _ in
-            let args = [jvalue(b: jbyte(bitPattern: value as! UInt8))]
+        RegisterType(type: UInt8.self, javaClassname: ByteClassname, encodableClosure: { any, _ in
+            let value = any as! UInt8
+            let primitive = try value.javaPrimitive()
+            let args = [jvalue(b: primitive)]
             return JNI.NewObject(ByteClass, methodID: ByteConstructor, args: args)!
         }, decodableClosure: { value, _ in
-            UInt8(bitPattern: JNI.CallByteMethod(value, methodID: NumberByteValueMethod))
+            UInt8(fromJavaPrimitive: JNI.CallByteMethod(value, methodID: NumberByteValueMethod))
         })
 
-        RegisterType(type: UInt16.self, javaClassname: ShortClassname, encodableClosure: { value, _ in
-            let args = [jvalue(s: jshort(bitPattern: value as! UInt16))]
+        RegisterType(type: UInt16.self, javaClassname: ShortClassname, encodableClosure: { any, _ in
+            let value = any as! UInt16
+            let primitive = try value.javaPrimitive()
+            let args = [jvalue(s: primitive)]
             return JNI.NewObject(ShortClass, methodID: ShortConstructor, args: args)!
         }, decodableClosure: { value, _ in
-            UInt16(bitPattern: JNI.CallShortMethod(value, methodID: NumberShortValueMethod))
+            UInt16(fromJavaPrimitive: JNI.CallShortMethod(value, methodID: NumberShortValueMethod))
         })
 
-        RegisterType(type: UInt32.self, javaClassname: IntegerClassname, encodableClosure: { value, _ in
-            let args = [jvalue(i: jint(bitPattern: value as! UInt32))]
+        RegisterType(type: UInt32.self, javaClassname: IntegerClassname, encodableClosure: { any, _ in
+            let value = any as! UInt32
+            let primitive = try value.javaPrimitive()
+            let args = [jvalue(i: primitive)]
             return JNI.NewObject(IntegerClass, methodID: IntegerConstructor, args: args)!
         }, decodableClosure: { value, _ in
-            UInt32(bitPattern: JNI.CallIntMethod(value, methodID: NumberIntValueMethod))
+            UInt32(fromJavaPrimitive: JNI.CallIntMethod(value, methodID: NumberIntValueMethod))
         })
 
-        RegisterType(type: UInt64.self, javaClassname: LongClassname, encodableClosure: { value, _ in
-            let args = [jvalue(j: jlong(bitPattern: value as! UInt64))]
+        RegisterType(type: UInt64.self, javaClassname: LongClassname, encodableClosure: { any, _ in
+            let value = any as! UInt64
+            let primitive = try value.javaPrimitive()
+            let args = [jvalue(j: primitive)]
             return JNI.NewObject(LongClass, methodID: LongConstructor, args: args)!
         }, decodableClosure: { value, _ in
-            UInt64(bitPattern: JNI.CallLongMethod(value, methodID: NumberLongValueMethod))
+            UInt64(fromJavaPrimitive: JNI.CallLongMethod(value, methodID: NumberLongValueMethod))
         })
 
-        RegisterType(type: Float.self, javaClassname: FloatClassname, encodableClosure: { value, _ in
-            let args = [jvalue(f: value as! Float)]
+        RegisterType(type: Float.self, javaClassname: FloatClassname, encodableClosure: { any, _ in
+            let value = any as! Float
+            let primitive = try value.javaPrimitive()
+            let args = [jvalue(f: primitive)]
             return JNI.NewObject(FloatClass, methodID: FloatConstructor, args: args)!
         }, decodableClosure: { value, _ in
-            JNI.CallFloatMethod(value, methodID: NumberFloatValueMethod)
+            Float(fromJavaPrimitive: JNI.CallFloatMethod(value, methodID: NumberFloatValueMethod))
         })
 
-        RegisterType(type: Double.self, javaClassname: DoubleClassname, encodableClosure: { value, _ in
-            let args = [jvalue(d: value as! Double)]
+        RegisterType(type: Double.self, javaClassname: DoubleClassname, encodableClosure: { any, _ in
+            let value = any as! Double
+            let primitive = try value.javaPrimitive()
+            let args = [jvalue(d: primitive)]
             return JNI.NewObject(DoubleClass, methodID: DoubleConstructor, args: args)!
         }, decodableClosure: { value, _ in
-            JNI.CallDoubleMethod(value, methodID: NumberDoubleValueMethod)
+            Double(fromJavaPrimitive: JNI.CallDoubleMethod(value, methodID: NumberDoubleValueMethod))
         })
 
         RegisterType(type: Bool.self, javaClassname: BooleanClassname, encodableClosure: { value, _ in
