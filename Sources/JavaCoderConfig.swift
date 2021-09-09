@@ -135,7 +135,7 @@ public struct JavaCoderConfig {
 
         RegisterType(type: Float.self, javaClassname: FloatClassname, encodableClosure: { any, _ in
             let value = any as! Float
-            let primitive = try value.javaPrimitive()
+            let primitive = jfloat(value)
             let args = [jvalue(f: primitive)]
             return JNI.NewObject(FloatClass, methodID: FloatConstructor, args: args)!
         }, decodableClosure: { value, _ in
@@ -144,7 +144,7 @@ public struct JavaCoderConfig {
 
         RegisterType(type: Double.self, javaClassname: DoubleClassname, encodableClosure: { any, _ in
             let value = any as! Double
-            let primitive = try value.javaPrimitive()
+            let primitive = jdouble(value)
             let args = [jvalue(d: primitive)]
             return JNI.NewObject(DoubleClass, methodID: DoubleConstructor, args: args)!
         }, decodableClosure: { value, _ in
