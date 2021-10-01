@@ -66,17 +66,28 @@ indirect enum JNIStorageType {
 class JNIStorageObject {
     let type: JNIStorageType
     let codingPath: [CodingKey]
+
+    private var _javaObject: jobject!
+
     var javaObject: jobject! {
-        didSet {
-            if let value = oldValue {
+        get {
+            return JNI.api.NewLocalRef(JNI.env, _javaObject)
+        }
+        set {
+            if let value = _javaObject {
                 JNI.api.DeleteLocalRef(JNI.env, value)
             }
+            _javaObject = newValue
         }
+    }
+
+    var hasJavaObject: Bool {
+        return _javaObject != nil
     }
     
     init(type: JNIStorageType, javaObject: jobject, codingPath: [CodingKey] = []) {
         self.type = type
-        self.javaObject = javaObject
+        self._javaObject = javaObject
         self.codingPath = codingPath
     }
     
@@ -86,7 +97,7 @@ class JNIStorageObject {
     }
     
     deinit {
-        if let value = javaObject {
+        if let value = _javaObject {
             JNI.api.DeleteLocalRef(JNI.env, value)
         }
     }
@@ -131,7 +142,7 @@ open class JavaEncoder: Encoder {
         do {
             let storage = try self.box(value, codingPath: codingPath)
             assert(self.javaObjects.count == 0, "Missing encoding for \(self.javaObjects.count) objects")
-            return JNI.api.NewLocalRef(JNI.env, storage.javaObject)!
+            return storage.javaObject!
         }
         catch {
             // clean all reference if failed
@@ -212,45 +223,55 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedEncodingContainerPro
         self.javaClass = javaClass
         self.jniStorage = jniStorage
     }
-    
-    private var javaObject: jobject {
-        return jniStorage.javaObject
-    }
 
     // MARK: Encode JNI primitive fields
     func encodeBoolean(_ value: jboolean, key: String) throws {
         let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "Z")
+        let javaObject = jniStorage.javaObject
         JNI.api.SetBooleanField(JNI.env, javaObject, fieldID, value)
+        JNI.DeleteLocalRef(javaObject)
     }
 
     func encodeByte(_ value: jbyte, key: String) throws {
         let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "B")
+        let javaObject = jniStorage.javaObject
         JNI.api.SetByteField(JNI.env, javaObject, fieldID, value)
+        JNI.DeleteLocalRef(javaObject)
     }
 
     func encodeShort(_ value: jshort, key: String) throws {
         let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "S")
+        let javaObject = jniStorage.javaObject
         JNI.api.SetShortField(JNI.env, javaObject, fieldID, value)
+        JNI.DeleteLocalRef(javaObject)
     }
 
     func encodeInteger(_ value: jint, key: String) throws {
         let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "I")
+        let javaObject = jniStorage.javaObject
         JNI.api.SetIntField(JNI.env, javaObject, fieldID, value)
+        JNI.DeleteLocalRef(javaObject)
     }
 
     func encodeLong(_ value: jlong, key: String) throws {
         let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "J")
+        let javaObject = jniStorage.javaObject
         JNI.api.SetLongField(JNI.env, javaObject, fieldID, value)
+        JNI.DeleteLocalRef(javaObject)
     }
 
     func encodeFloat(_ value: jfloat, key: String) throws {
         let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "F")
+        let javaObject = jniStorage.javaObject
         JNI.api.SetFloatField(JNI.env, javaObject, fieldID, value)
+        JNI.DeleteLocalRef(javaObject)
     }
 
     func encodeDouble(_ value: jdouble, key: String) throws {
         let fieldID = try JNI.getJavaField(forClass: javaClass, field: key, sig: "D")
+        let javaObject = jniStorage.javaObject
         JNI.api.SetDoubleField(JNI.env, javaObject, fieldID, value)
+        JNI.DeleteLocalRef(javaObject)
     }
     
     // MARK: - KeyedEncodingContainerProtocol Methods
@@ -402,7 +423,11 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedEncodingContainerPro
         do {
             let object = try self.encoder.box(value, codingPath: codingPath + [key])
             let filed = try JNI.getJavaField(forClass: self.javaClass, field: key.stringValue, sig: object.type.sig)
-            JNI.api.SetObjectField(JNI.env, self.javaObject, filed, object.javaObject)
+            let javaObject = jniStorage.javaObject
+            let javaField = object.javaObject
+            JNI.api.SetObjectField(JNI.env, javaObject, filed, javaField)
+            JNI.DeleteLocalRef(javaObject)
+            JNI.DeleteLocalRef(javaField)
         }
         catch {
             if self.encoder.missingFieldsStrategy == .ignore {
@@ -455,10 +480,6 @@ fileprivate class JavaHashMapKeyedContainer<K : CodingKey> : KeyedEncodingContai
         self.jniStorage = jniStorage
     }
     
-    private var javaObject: jobject {
-        return jniStorage.javaObject
-    }
-    
     // MARK: - KeyedEncodingContainerProtocol Methods
     public func encodeNil(forKey key: Key) throws {
         throw EncodingError.invalidValue(NSNotFound, EncodingError.Context(codingPath: codingPath, debugDescription: "Nil not supported"))
@@ -474,7 +495,13 @@ fileprivate class JavaHashMapKeyedContainer<K : CodingKey> : KeyedEncodingContai
         }
         
         let valueStorage = try self.encoder.box(value, codingPath: codingPath + [key])
-        let result = JNI.CallObjectMethod(javaObject, methodID: HashMapPutMethod, args: [jvalue(l: keyStorage.javaObject), jvalue(l: valueStorage.javaObject)])
+        let javaObject = jniStorage.javaObject
+        let javaKey = keyStorage.javaObject
+        let javaValue = valueStorage.javaObject
+        let result = JNI.CallObjectMethod(javaObject!, methodID: HashMapPutMethod, args: [jvalue(l: javaKey), jvalue(l: javaValue)])
+        JNI.DeleteLocalRef(javaObject)
+        JNI.DeleteLocalRef(javaKey)
+        JNI.DeleteLocalRef(javaValue)
         assert(result == nil, "Rewrite for key \(key.stringValue)")
     }
     
@@ -518,10 +545,6 @@ fileprivate class JavaHashMapUnkeyedContainer : UnkeyedEncodingContainer {
         self.jniStorage = jniStorage
     }
     
-    private var javaObject: jobject {
-        return jniStorage.javaObject
-    }
-    
     // MARK: - UnkeyedEncodingContainer Methods
     public func encodeNil() throws {
         throw EncodingError.invalidValue(NSNotFound, EncodingError.Context(codingPath: codingPath, debugDescription: "Nil not supported"))
@@ -531,7 +554,13 @@ fileprivate class JavaHashMapUnkeyedContainer : UnkeyedEncodingContainer {
         let indexKey = JavaKey(index: count)
         let javaValue = try self.encoder.box(value, codingPath: codingPath + [indexKey])
         if let javaKey = self.javaKey {
-            let result = JNI.CallObjectMethod(javaObject, methodID: HashMapPutMethod, args: [jvalue(l: javaKey.javaObject), jvalue(l: javaValue.javaObject)])
+            let javaObject = jniStorage.javaObject
+            let javaKey = javaKey.javaObject
+            let javaValue = javaValue.javaObject
+            let result = JNI.CallObjectMethod(javaObject!, methodID: HashMapPutMethod, args: [jvalue(l: javaKey), jvalue(l: javaValue)])
+            JNI.DeleteLocalRef(javaObject)
+            JNI.DeleteLocalRef(javaKey)
+            JNI.DeleteLocalRef(javaValue)
             assert(result == nil, "Rewrite for key")
             self.javaKey = nil
         }
@@ -575,10 +604,6 @@ fileprivate class JavaArrayContainer : UnkeyedEncodingContainer {
         self.jniStorage = jniStorage
     }
     
-    private var javaObject: jobject {
-        return jniStorage.javaObject
-    }
-    
     // MARK: - UnkeyedEncodingContainer Methods
     public func encodeNil() throws {
         throw EncodingError.invalidValue(NSNotFound, EncodingError.Context(codingPath: codingPath, debugDescription: "Nil not supported"))
@@ -587,7 +612,11 @@ fileprivate class JavaArrayContainer : UnkeyedEncodingContainer {
     public func encode<T : Encodable>(_ value: T) throws {
         let indexKey = JavaKey(index: count)
         let storeObject = try self.encoder.box(value, codingPath: codingPath + [indexKey])
-        let rewrite = JNI.CallBooleanMethod(self.javaObject, methodID: CollectionAddMethod, args: [jvalue(l: storeObject.javaObject)])
+        let javaObject = jniStorage.javaObject
+        let javaNewValue = storeObject.javaObject
+        let rewrite = JNI.CallBooleanMethod(javaObject!, methodID: CollectionAddMethod, args: [jvalue(l: javaNewValue!)])
+        JNI.DeleteLocalRef(javaObject)
+        JNI.DeleteLocalRef(javaNewValue)
         assert(rewrite == JNI.TRUE, "ArrayList should always return true from add()")
         count += 1
     }
@@ -667,18 +696,19 @@ class JavaEnumValueEncodingContainer: SingleValueEncodingContainer {
     public func encode(_ value: jvalue, sig: String) throws {
         let clazz = try JNI.getJavaClass(javaClass)
         // If jniStorage.javaObject == nil its enum, else optionSet
-        if jniStorage.javaObject == nil {
+        if let javaObject = jniStorage.javaObject {
+            let filed = try JNI.getJavaField(forClass: self.javaClass, field: "rawValue", sig: sig)
+            let setterFunc = setterFuncMap[sig]
+            setterFunc?(javaObject, filed, value)
+            JNI.DeleteLocalRef(javaObject)
+        }
+        else {
             let valueOfMethodID = try JNI.getStaticJavaMethod(forClass: javaClass, method: "valueOf", sig: "(\(sig))L\(javaClass);")
             guard let javaObject = JNI.CallStaticObjectMethod(clazz, methodID: valueOfMethodID, args: [value]) else {
                 throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: codingPath,
                         debugDescription: "Nil not supported: \\(javaClass).valueOf()"))
             }
             jniStorage.javaObject = javaObject
-        }
-        else {
-            let filed = try JNI.getJavaField(forClass: self.javaClass, field: "rawValue", sig: sig)
-            let setterFunc = setterFuncMap[sig]
-            setterFunc?(self.jniStorage.javaObject, filed, value)
         }
     }
 
@@ -693,13 +723,13 @@ class JavaEnumValueEncodingContainer: SingleValueEncodingContainer {
         let rawValue = try encoder.box(valueType, codingPath: codingPath)
         let clazz = try JNI.getJavaClass(javaClass)
         // If jniStorage.javaObject == nil its enum, else optionSet
-        if jniStorage.javaObject == nil {
+        if jniStorage.hasJavaObject == false {
             let valueOfMethodID = try JNI.getStaticJavaMethod(forClass: javaClass, method: "valueOf", sig: "(\(rawValue.type.sig))L\(javaClass);")
-            JNI.SaveFatalErrorMessage("\(javaClass) valueOf \(rawValue.type.sig)")
+            let javaObject = rawValue.javaObject
             defer {
-                JNI.RemoveFatalErrorMessage()
+                JNI.DeleteLocalRef(javaObject)
             }
-            guard let javaObject = JNI.CallStaticObjectMethod(clazz, methodID: valueOfMethodID, args: [jvalue(l: rawValue.javaObject)]) else {
+            guard let javaObject = JNI.CallStaticObjectMethod(clazz, methodID: valueOfMethodID, args: [jvalue(l: javaObject)]) else {
                 throw JavaCodingError.cantCreateObject(javaClass)
             }
             jniStorage.javaObject = javaObject
@@ -732,10 +762,6 @@ fileprivate class JavaAnyCodableContainer<K : CodingKey> : KeyedEncodingContaine
         self.jniStorage = jniStorage
     }
 
-    private var javaObject: jobject {
-        return jniStorage.javaObject
-    }
-
     // MARK: - KeyedEncodingContainerProtocol Methods
     public func encodeNil(forKey key: Key) throws {
         throw EncodingError.invalidValue(NSNotFound, EncodingError.Context(codingPath: codingPath, debugDescription: "Nil not supported"))
@@ -748,7 +774,7 @@ fileprivate class JavaAnyCodableContainer<K : CodingKey> : KeyedEncodingContaine
         }
         do {
             let jniObject = try self.encoder.box(value, codingPath: codingPath + [key])
-            self.jniStorage.javaObject = JNI.api.NewLocalRef(JNI.env, jniObject.javaObject)
+            self.jniStorage.javaObject = jniObject.javaObject
         }
         catch {
             if self.encoder.missingFieldsStrategy == .ignore {
