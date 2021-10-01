@@ -263,11 +263,11 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedEncodingContainerPro
     }
 
     func encode(_ value: Double, forKey key: K) throws {
-        try encodeDouble(try value.javaPrimitive(), key: key.stringValue)
+        try encodeDouble(jdouble(value), key: key.stringValue)
     }
 
     func encode(_ value: Float, forKey key: K) throws {
-        try encodeFloat(try value.javaPrimitive(), key: key.stringValue)
+        try encodeFloat(jfloat(value), key: key.stringValue)
     }
 
     func encode(_ value: Int, forKey key: K) throws {
