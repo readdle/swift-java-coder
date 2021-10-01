@@ -725,11 +725,11 @@ class JavaEnumValueEncodingContainer: SingleValueEncodingContainer {
         // If jniStorage.javaObject == nil its enum, else optionSet
         if jniStorage.hasJavaObject == false {
             let valueOfMethodID = try JNI.getStaticJavaMethod(forClass: javaClass, method: "valueOf", sig: "(\(rawValue.type.sig))L\(javaClass);")
-            let javaObject = rawValue.javaObject
+            let javaRawValue = rawValue.javaObject
             defer {
-                JNI.DeleteLocalRef(javaObject)
+                JNI.DeleteLocalRef(javaRawValue)
             }
-            guard let javaObject = JNI.CallStaticObjectMethod(clazz, methodID: valueOfMethodID, args: [jvalue(l: javaObject)]) else {
+            guard let javaObject = JNI.CallStaticObjectMethod(clazz, methodID: valueOfMethodID, args: [jvalue(l: javaRawValue)]) else {
                 throw JavaCodingError.cantCreateObject(javaClass)
             }
             jniStorage.javaObject = javaObject
