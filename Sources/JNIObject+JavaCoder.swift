@@ -47,15 +47,15 @@ public extension JNIObject {
     
     func callStringMethod(method: String? = nil, functionName: String = #function, _ args: JNIArgumentProtocol...) -> String {
         let methodName = method ?? String(functionName.split(separator: "(")[0])
-        return String(javaObject: self.internalcallObjectMethod(method: methodName, returnType: "Ljava/lang/String;", args))
+        return String(javaObject: self.internalCallObjectMethod(method: methodName, returnType: "Ljava/lang/String;", args))
     }
     
     func callObjectMethod(method: String? = nil, functionName: String = #function, returnType: String, _ args: JNIArgumentProtocol...) -> jobject? {
         let methodName = method ?? String(functionName.split(separator: "(")[0])
-        return self.internalcallObjectMethod(method: methodName, returnType: returnType, args)
+        return self.internalCallObjectMethod(method: methodName, returnType: returnType, args)
     }
     
-    private func internalcallObjectMethod(method: String, returnType: String, _ args: [JNIArgumentProtocol]) -> jobject? {
+    private func internalCallObjectMethod(method: String, returnType: String, _ args: [JNIArgumentProtocol]) -> jobject? {
         let sig = "(\(args.map({ $0.sig() }).joined()))\(returnType)"
         let methodID = try! JNI.getJavaMethod(forClass: self.className, method: method, sig: sig)
         return checkArgumentAndWrap(args: args, { argsPtr in

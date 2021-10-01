@@ -124,7 +124,7 @@ public extension JNICore {
         public func `throw`() {
             switch self {
             case .classNotFoundException(let message):
-                assert(JNI.api.ThrowNew(JNI.env, ExceptionClass, "ClassNotFoundaException: \(message)") == 0)
+                assert(JNI.api.ThrowNew(JNI.env, ExceptionClass, "ClassNotFoundException: \(message)") == 0)
             case .methodNotFoundException(let message):
                 assert(JNI.api.ThrowNew(JNI.env, ExceptionClass, "MethodNotFoundException: \(message)") == 0)
             case .fieldNotFoundException(let message):
@@ -136,7 +136,7 @@ public extension JNICore {
         public var errorDescription: String? {
             switch self {
             case .classNotFoundException(let message):
-                return "ClassNotFoundaException: \(message)"
+                return "ClassNotFoundException: \(message)"
             case .methodNotFoundException(let message):
                 return "MethodNotFoundException: \(message)"
             case .fieldNotFoundException(let message):
