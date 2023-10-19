@@ -4,7 +4,7 @@
 
 import Foundation
 import java_swift
-import CJavaVM
+import CAndroidNDK
 
 public typealias JavaEncodableClosure = (Any, [CodingKey]) throws -> jobject
 public typealias JavaDecodableClosure = (jobject, [CodingKey]) throws -> Decodable
