@@ -196,7 +196,7 @@ public struct JavaCoderConfig {
             let byteArray = JNI.api.NewByteArray(JNI.env, jint(valueData.count))
             if let throwable = JNI.ExceptionCheck() {
                 throw EncodingError.invalidValue(data, EncodingError.Context(codingPath: codingPath,
-                        debugDescription: "Can't create NewByteArray \(valueData.count)"))
+                        debugDescription: "Can't create NewByteArray \(valueData.count): \(throwable)"))
             }
             try valueData.withUnsafeBytes({ pointer in
                 guard let bytes = pointer.baseAddress?.assumingMemoryBound(to: Int8.self) else {
@@ -207,7 +207,7 @@ public struct JavaCoderConfig {
             })
             if let throwable = JNI.ExceptionCheck() {
                 throw EncodingError.invalidValue(data, EncodingError.Context(codingPath: codingPath,
-                        debugDescription: "SetByteArrayRegion failed \(valueData.count)"))
+                        debugDescription: "SetByteArrayRegion failed \(valueData.count): \(throwable)"))
             }
             JNI.SaveFatalErrorMessage("java/nio/ByteBuffer wrap")
             defer {
