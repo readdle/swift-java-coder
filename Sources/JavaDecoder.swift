@@ -90,7 +90,25 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedDecodingContainerPro
         typealias Key = K
     
     var codingPath: [CodingKey]
-    var allKeys = [K]()
+    var allKeys: [K] {
+        let javaObject = jniStorage.javaObject
+        let cls = JNI.api.GetObjectClass(JNI.env, javaObject)
+        let javaClassName = JNI.api.CallObjectMethodA(JNI.env, cls, ClassGetNameMethod, nil)
+        let className = String(javaObject: javaClassName).replacingOccurrences(of: ".", with: "/")
+        JNI.DeleteLocalRef(cls)
+        JNI.DeleteLocalRef(javaClassName)
+        JNI.DeleteLocalRef(javaObject)
+
+        if className.hasPrefix(javaClass) {
+            let innerClassname = className.replacingOccurrences(of: javaClass, with: "")
+            let enumCase = innerClassname.dropFirst() // Drop $
+            if let key = K(stringValue: enumCase.prefix(1).lowercased() + enumCase.dropFirst()) {
+                return [key]
+            }
+        }
+
+        return [K]()
+    }
     
     let decoder: JavaDecoder
     let jniStorage: JNIStorageObject
@@ -369,7 +387,16 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedDecodingContainerPro
     }
     
     func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type, forKey key: K) throws -> KeyedDecodingContainer<NestedKey> where NestedKey : CodingKey {
-        throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: "Nested keyed container not supported")
+        let capitalizedKey = key.stringValue.prefix(1).uppercased() + key.stringValue.dropFirst()
+        let fullClassName = javaClass + "$" + capitalizedKey
+        let storageType: JNIStorageType = .object(className: fullClassName)
+        let storage = JNIStorageObject(type: storageType, javaObject: jniStorage.javaObject)
+        return KeyedDecodingContainer<NestedKey>(
+                JavaObjectContainer<NestedKey>(
+                        decoder: decoder,
+                        jniStorage: storage
+                )
+        )
     }
     
     func nestedUnkeyedContainer(forKey key: K) throws -> UnkeyedDecodingContainer {

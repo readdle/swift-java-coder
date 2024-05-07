@@ -440,7 +440,29 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedEncodingContainerPro
     }
     
     public func nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type, forKey key: Key) -> KeyedEncodingContainer<NestedKey> {
-        preconditionFailure("Not implemented: nestedContainer")
+        do {
+            let capitalizedKey = key.stringValue.prefix(1).uppercased() + key.stringValue.dropFirst()
+            let fullClassName = javaClass + "$" + capitalizedKey
+            let storageType: JNIStorageType = .object(className: fullClassName)
+            let javaClass = try JNI.getJavaClass(fullClassName)
+            let emptyConstructor = try JNI.getJavaEmptyConstructor(forClass: fullClassName)
+            guard let javaObject = JNI.api.NewObjectA(JNI.env, javaClass, emptyConstructor, nil) else {
+                throw JavaCodingError.cantCreateObject(fullClassName)
+            }
+            jniStorage.javaObject = JNI.api.NewLocalRef(JNI.env, javaObject)
+            let storage = JNIStorageObject(type: storageType, javaObject: javaObject)
+            return KeyedEncodingContainer<NestedKey>(
+                    JavaObjectContainer<NestedKey>(
+                        referencing: encoder,
+                        codingPath: codingPath + [key],
+                        javaClass: fullClassName,
+                        jniStorage: storage
+                    )
+            )
+        }
+        catch {
+            preconditionFailure("Can't create nestedContainer: \(error)")
+        }
     }
     
     public func nestedUnkeyedContainer(forKey key: Key) -> UnkeyedEncodingContainer {
