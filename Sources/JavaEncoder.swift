@@ -445,12 +445,22 @@ fileprivate class JavaObjectContainer<K : CodingKey> : KeyedEncodingContainerPro
             let fullClassName = javaClass + "$" + capitalizedKey
             let storageType: JNIStorageType = .object(className: fullClassName)
             let javaClass = try JNI.getJavaClass(fullClassName)
-            let emptyConstructor = try JNI.getJavaEmptyConstructor(forClass: fullClassName)
-            guard let javaObject = JNI.api.NewObjectA(JNI.env, javaClass, emptyConstructor, nil) else {
-                throw JavaCodingError.cantCreateObject(fullClassName)
+            if let instanceFieldId = JNI.api.GetStaticFieldID(JNI.env, javaClass, "INSTANCE", "L\(fullClassName);") {
+                guard let javaObject = JNI.api.GetStaticObjectField(JNI.env, javaClass, instanceFieldId) else {
+                    throw JavaCodingError.cantCreateObject(fullClassName)
+                }
+                jniStorage.javaObject = JNI.api.NewLocalRef(JNI.env, javaObject)
             }
-            jniStorage.javaObject = JNI.api.NewLocalRef(JNI.env, javaObject)
-            let storage = JNIStorageObject(type: storageType, javaObject: javaObject)
+            else {
+                // We reset exception after unsuccessful GetStaticFieldID
+                JNI.api.ExceptionClear(JNI.env)
+                let emptyConstructor = try JNI.getJavaEmptyConstructor(forClass: fullClassName)
+                guard let javaObject = JNI.api.NewObjectA(JNI.env, javaClass, emptyConstructor, nil) else {
+                    throw JavaCodingError.cantCreateObject(fullClassName)
+                }
+                jniStorage.javaObject = JNI.api.NewLocalRef(JNI.env, javaObject)
+            }
+            let storage = JNIStorageObject(type: storageType, javaObject: jniStorage.javaObject!)
             return KeyedEncodingContainer<NestedKey>(
                     JavaObjectContainer<NestedKey>(
                         referencing: encoder,
