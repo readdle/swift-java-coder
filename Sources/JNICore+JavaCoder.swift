@@ -22,6 +22,7 @@ var ArrayListClassname = "java/util/ArrayList"
 let HashMapClassname = "java/util/HashMap"
 let SetClassname = "java/util/Set"
 let UriClassname = "android/net/Uri"
+let UuidClassname = "java/util/UUID"
 let DateClassname = "java/util/Date"
 let HashSetClassname = "java/util/HashSet"
 let ByteBufferClassname = "java/nio/ByteBuffer"
@@ -38,6 +39,7 @@ var BooleanClass = try! JNI.getJavaClass("java/lang/Boolean")
 var StringClass = try! JNI.getJavaClass("java/lang/String")
 let ExceptionClass = try! JNI.getJavaClass("java/lang/Exception")
 let UriClass = try! JNI.getJavaClass("android/net/Uri")
+let UuidClass = try! JNI.getJavaClass("java/util/UUID")
 let DateClass = try! JNI.getJavaClass("java/util/Date")
 let VMDebugClass = try! JNI.getJavaClass("dalvik/system/VMDebug")
 let HashSetClass = try! JNI.getJavaClass("java/util/HashSet")
@@ -47,6 +49,7 @@ let DoubleClass = try! JNI.getJavaClass("java/lang/Double")
 
 // MARK: Java methods
 let UriConstructor = JNI.api.GetStaticMethodID(JNI.env, UriClass, "parse", "(Ljava/lang/String;)Landroid/net/Uri;")
+let UuidConstructor = JNI.api.GetStaticMethodID(JNI.env, UuidClass, "fromString", "(Ljava/lang/String;)Ljava/util/UUID;")
 let DateConstructor = try! JNI.getJavaMethod(forClass: "java/util/Date", method: "<init>", sig: "(J)V")
 let IntegerConstructor = try! JNI.getJavaMethod(forClass: IntegerClassname, method: "<init>", sig: "(I)V")
 let ByteConstructor = try! JNI.getJavaMethod(forClass: ByteClassname, method: "<init>", sig: "(B)V")
