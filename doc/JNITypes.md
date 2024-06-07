@@ -20,4 +20,5 @@
     OptionSet       // custom type with rawValue field and valueOf() static method
 
     URL             // android/net/Uri
+    UUID            // java/util/UUID
     Date            // java/util/Date
