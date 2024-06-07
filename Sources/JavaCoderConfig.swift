@@ -174,6 +174,20 @@ public struct JavaCoderConfig {
             return URL(string: String(javaObject: pathString))
         })
 
+        JavaCoderConfig.RegisterType(type: UUID.self, javaClassname: UuidClassname, encodableClosure: {
+            var locals = [jobject]()
+            let javaString = ($0 as! UUID).uuidString.localJavaObject(&locals)
+            let args = [jvalue(l: javaString)]
+            JNI.SaveFatalErrorMessage("UuidConstructor")
+            defer {
+                JNI.RemoveFatalErrorMessage()
+            }
+            return JNI.check(JNI.CallStaticObjectMethod(UuidClass, methodID: UuidConstructor!, args: args)!, &locals)
+        }, decodableClosure: {
+            let pathString = JNI.api.CallObjectMethodA(JNI.env, $0, ObjectToStringMethod, nil)
+            return UUID(uuidString: String(javaObject: pathString))
+        })
+
         RegisterType(type: Data.self, javaClassname: ByteBufferClassname, encodableClosure: {
             let valueData = $0 as! Data
             let byteArray = JNI.api.NewByteArray(JNI.env, jint(valueData.count))
