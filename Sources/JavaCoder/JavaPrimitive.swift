@@ -4,7 +4,6 @@
 
 import Foundation
 import java_swift
-import CAndroidNDK
 
 public typealias JavaBoolean = jboolean
 public typealias JavaByte = jbyte
