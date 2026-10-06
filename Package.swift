@@ -35,6 +35,10 @@ let package = Package(
             ],
             path: "Sources/JavaCoder"
         ),
+        .testTarget(
+            name: "JavaCoderTests",
+            dependencies: ["java_swift"]
+        ),
     ],
     swiftLanguageModes: [.v5]
 )

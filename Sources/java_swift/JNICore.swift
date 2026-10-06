@@ -78,15 +78,21 @@ open class JNICore {
         }
         let className = String(cString: name)
 
-        if let classLoader = self.classLoader {
-            var locals = [jobject]()
-            let javaName = className.localJavaObject(&locals)
-            if loadClassMethodID == nil, let clClass = api.GetObjectClass(env, classLoader) {
-                loadClassMethodID = api.GetMethodID(env, clClass,
-                                                    "loadClass",
-                                                    "(Ljava/lang/String;)Ljava/lang/Class;")
-                api.DeleteLocalRef(env, clClass)
+        if let classLoader = self.classLoader, loadClassMethodID == nil,
+           let clClass = api.GetObjectClass(env, classLoader) {
+            loadClassMethodID = api.GetMethodID(env, clClass,
+                                                "loadClass",
+                                                "(Ljava/lang/String;)Ljava/lang/Class;")
+            api.DeleteLocalRef(env, clClass)
+            if loadClassMethodID == nil {
+                api.ExceptionClear(env) // fall back to raw FindClass below
             }
+        }
+
+        if let classLoader = self.classLoader, let loadClassMethodID = self.loadClassMethodID {
+            var locals = [jobject]()
+            // `loadClass` expects a binary name (`java.lang.Integer`), not a JNI internal name.
+            let javaName = className.replacingOccurrences(of: "/", with: ".").localJavaObject(&locals)
             let args = [jvalue(l: javaName)]
             let clazz: jclass? = args.withUnsafeBufferPointer { ptr in
                 api.CallObjectMethodA(env, classLoader, loadClassMethodID, ptr.baseAddress)
